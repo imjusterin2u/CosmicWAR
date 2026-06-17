@@ -1,0 +1,1315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Cosmic WAR</title>
+
+<!-- Firebase v9 compat (CDN, no build step) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --purple:    #534AB7;
+    --purple-lt: #EEEDFE;
+    --purple-dk: #3C3489;
+    --teal:      #1D9E75;
+    --teal-lt:   #E1F5EE;
+    --coral:     #D85A30;
+    --coral-lt:  #FAECE7;
+    --blue:      #185FA5;
+    --blue-lt:   #E6F1FB;
+    --amber:     #BA7517;
+    --amber-lt:  #FAEEDA;
+    --green:     #3B6D11;
+    --green-lt:  #EAF3DE;
+    --red:       #A32D2D;
+    --red-lt:    #FCEBEB;
+    --text:      #1a1a1a;
+    --text-muted:#666;
+    --border:    rgba(0,0,0,0.12);
+    --surface:   #f8f8f6;
+    --white:     #ffffff;
+    --radius:    10px;
+    --radius-sm: 6px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --text:     #f0efe8;
+      --text-muted: #999;
+      --border:   rgba(255,255,255,0.12);
+      --surface:  #1e1e1c;
+      --white:    #2a2a28;
+      --purple-lt:#1e1c3a;
+      --teal-lt:  #0a2a1e;
+      --coral-lt: #2a180f;
+      --blue-lt:  #0a1e35;
+      --amber-lt: #2a1e08;
+      --green-lt: #0f1f06;
+      --red-lt:   #2a0f0f;
+    }
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--surface);
+    color: var(--text);
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .screen { display: none; flex-direction: column; flex: 1; }
+  .screen.active { display: flex; }
+
+  /* ── NAV ── */
+  .nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.75rem 1rem;
+    border-bottom: 0.5px solid var(--border);
+    background: var(--white);
+  }
+  .nav-title { font-size: 16px; font-weight: 600; color: var(--purple); letter-spacing: 0.5px; }
+  .nav-right { font-size: 13px; color: var(--text-muted); }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--white);
+    border-radius: var(--radius);
+    border: 0.5px solid var(--border);
+    padding: 1.25rem;
+  }
+  .card + .card { margin-top: 0.75rem; }
+
+  /* ── BUTTONS ── */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 10px 18px;
+    border-radius: var(--radius-sm);
+    border: 0.5px solid var(--border);
+    background: var(--white);
+    color: var(--text);
+    font-size: 14px; font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+    width: 100%;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn:disabled { opacity: 0.4; cursor: default; pointer-events: none; }
+  .btn-primary { background: var(--purple); color: #fff; border-color: var(--purple-dk); }
+  .btn-primary:hover { background: var(--purple-dk); }
+  .btn-coral { background: var(--coral); color: #fff; border-color: #993C1D; }
+  .btn-teal  { background: var(--teal);  color: #fff; border-color: #0F6E56; }
+  .btn-sm { padding: 7px 12px; font-size: 13px; width: auto; }
+  .btn-row { display: flex; gap: 8px; margin-top: 0.75rem; }
+  .btn-row .btn { flex: 1; }
+
+  /* ── INPUTS ── */
+  input[type=text], input[type=number] {
+    width: 100%; padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--white);
+    color: var(--text);
+    font-size: 15px;
+    margin-top: 0.35rem;
+  }
+  input:focus { outline: 2px solid var(--purple); outline-offset: 1px; border-color: transparent; }
+  label { font-size: 13px; color: var(--text-muted); display: block; margin-top: 0.75rem; }
+  label:first-child { margin-top: 0; }
+
+  /* ── BADGES ── */
+  .badge {
+    display: inline-block;
+    padding: 2px 8px; border-radius: 10px;
+    font-size: 11px; font-weight: 500;
+  }
+  .badge-purple { background: var(--purple-lt); color: var(--purple-dk); }
+  .badge-coral  { background: var(--coral-lt);  color: var(--coral); }
+  .badge-teal   { background: var(--teal-lt);   color: var(--teal); }
+  .badge-amber  { background: var(--amber-lt);  color: var(--amber); }
+
+  /* ── SCOREBOARD ── */
+  .scoreboard { display: flex; gap: 8px; padding: 0.75rem 1rem 0; }
+  .score-box {
+    flex: 1; background: var(--white); border: 0.5px solid var(--border);
+    border-radius: var(--radius); padding: 0.6rem 0.75rem; text-align: center;
+  }
+  .score-box.winner-box { border-color: var(--purple); background: var(--purple-lt); }
+  .score-box .name { font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .score-box .num  { font-size: 24px; font-weight: 600; color: var(--text); line-height: 1.2; }
+  .score-box.winner-box .num { color: var(--purple); }
+  .score-box .sub  { font-size: 10px; color: var(--text-muted); }
+
+  /* ── BATTLE AREA ── */
+  .battle-area {
+    display: flex; align-items: center; justify-content: center;
+    gap: 10px; padding: 0.75rem 1rem;
+  }
+  .card-zone { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; }
+  .card-zone .zone-label { font-size: 11px; color: var(--text-muted); font-weight: 500; }
+
+  .play-card {
+    width: 130px; height: 180px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--white);
+    display: flex; flex-direction: column; align-items: center;
+    padding: 0 8px 10px;
+    position: relative; overflow: hidden;
+    transition: box-shadow 0.2s;
+  }
+  .play-card.glow { box-shadow: 0 0 0 3px var(--purple); }
+  .play-card.glow-win { box-shadow: 0 0 0 3px var(--teal); }
+
+  .card-stripe { height: 7px; width: 100%; border-radius: 10px 10px 0 0; margin-bottom: 6px; flex-shrink: 0; }
+  .stripe-spades   { background: var(--purple); }
+  .stripe-clubs    { background: var(--teal); }
+  .stripe-hearts   { background: var(--coral); }
+  .stripe-diamonds { background: var(--blue); }
+
+  .card-val  { font-size: 22px; font-weight: 700; color: var(--text); line-height: 1; }
+  .card-suit-sym { font-size: 13px; margin-bottom: 4px; }
+  .suit-sym-spades   { color: var(--purple); }
+  .suit-sym-clubs    { color: var(--teal); }
+  .suit-sym-hearts   { color: var(--coral); }
+  .suit-sym-diamonds { color: var(--blue); }
+
+  .card-words { width: 100%; flex: 1; display: flex; flex-direction: column; gap: 3px; }
+  .card-word-row { font-size: 11px; }
+  .card-word-lbl { color: var(--text-muted); font-size: 9px; }
+  .card-word-val { font-weight: 500; color: var(--text); font-size: 12px; }
+
+  .card-back {
+    width: 130px; height: 180px;
+    border-radius: 10px;
+    background: var(--purple);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px;
+  }
+  .card-empty {
+    width: 130px; height: 180px;
+    border-radius: 10px;
+    border: 2px dashed var(--border);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-muted); font-size: 12px;
+  }
+
+  .vs-label { font-size: 13px; color: var(--text-muted); font-weight: 500; margin-bottom: 24px; }
+
+  /* ── STATUS BAR ── */
+  .status-bar {
+    text-align: center; font-size: 13px; font-weight: 500;
+    padding: 0.4rem 1rem; min-height: 36px;
+    color: var(--text-muted);
+  }
+  .status-bar.s-win   { color: var(--teal); }
+  .status-bar.s-war   { color: var(--coral); }
+  .status-bar.s-info  { color: var(--purple); }
+
+  /* ── POT ── */
+  .pot-area { padding: 0 1rem; text-align: center; }
+  .pot-label { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+  .pot-chips { display: flex; gap: 3px; justify-content: center; flex-wrap: wrap; }
+  .pot-chip  { width: 22px; height: 32px; border-radius: 4px; background: var(--purple); opacity: 0.7; }
+
+  /* ── WORD CHOICE PANEL ── */
+  .panel {
+    margin: 0 1rem 0.75rem;
+    background: var(--white);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+  }
+  .panel-title { font-size: 12px; color: var(--text-muted); margin-bottom: 0.6rem; font-weight: 500; }
+
+  .choice-grid { display: flex; flex-direction: column; gap: 6px; }
+  .choice-btn {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    cursor: pointer;
+    transition: background 0.1s;
+    text-align: left;
+  }
+  .choice-btn:hover { background: var(--purple-lt); border-color: var(--purple); }
+  .choice-btn.selected { background: var(--purple-lt); border-color: var(--purple); }
+  .choice-btn .choice-num {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--purple-lt); color: var(--purple-dk);
+    font-size: 11px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .choice-btn.cosmic .choice-num { background: var(--amber-lt); color: var(--amber); }
+  .choice-btn.cosmic { border-color: var(--amber); }
+  .choice-word { font-size: 15px; font-weight: 600; color: var(--text); }
+  .choice-tag  { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
+
+  /* ── TAP GUIDE ── */
+  .tap-guide {
+    background: var(--purple-lt);
+    border-radius: var(--radius-sm);
+    padding: 0.75rem;
+    margin-top: 0.75rem;
+    border: 0.5px solid rgba(83,74,183,0.2);
+  }
+  .tap-guide-title { font-size: 11px; color: var(--purple-dk); font-weight: 500; margin-bottom: 0.5rem; }
+  .phoneme-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .phoneme {
+    min-width: 34px; height: 34px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 600;
+    border: 2px solid var(--purple);
+    color: var(--purple-dk);
+    background: var(--white);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, transform 0.08s;
+    padding: 0 6px;
+  }
+  .phoneme.welded { border-radius: 17px; border-color: var(--coral); color: var(--coral); }
+  .phoneme.tapped { background: var(--purple); color: #fff; transform: scale(0.88); }
+  .phoneme.welded.tapped { background: var(--coral); }
+  .phoneme-sep { color: var(--text-muted); font-size: 16px; }
+
+  /* ── SPELLING INPUT ── */
+  .spell-input {
+    width: 100%; padding: 12px 14px;
+    border-radius: var(--radius-sm);
+    border: 2px solid var(--border);
+    background: var(--white);
+    color: var(--text);
+    font-size: 18px; letter-spacing: 1px;
+    margin-top: 0.75rem;
+    transition: border-color 0.15s;
+  }
+  .spell-input:focus { outline: none; border-color: var(--purple); }
+  .spell-input.correct { border-color: var(--teal); background: var(--teal-lt); }
+  .spell-input.incorrect { border-color: var(--red); }
+  .spell-feedback { font-size: 13px; margin-top: 6px; min-height: 20px; font-weight: 500; }
+  .spell-feedback.ok  { color: var(--green); }
+  .spell-feedback.err { color: var(--red); }
+
+  /* ── ROOM CODE ── */
+  .room-code-display {
+    font-size: 36px; font-weight: 700; letter-spacing: 6px;
+    text-align: center; color: var(--purple);
+    background: var(--purple-lt);
+    border-radius: var(--radius);
+    padding: 1rem;
+    margin: 0.75rem 0;
+  }
+
+  /* ── WAITING SPINNER ── */
+  .spinner {
+    width: 32px; height: 32px;
+    border: 3px solid var(--border);
+    border-top-color: var(--purple);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 1rem auto;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── TURN PILL ── */
+  .turn-pill {
+    display: inline-block;
+    background: var(--purple); color: #fff;
+    font-size: 11px; font-weight: 500;
+    padding: 3px 10px; border-radius: 10px;
+    margin: 0 auto 0.25rem;
+  }
+  .turn-row { text-align: center; padding: 0.25rem 1rem 0; }
+
+  /* ── MAIN ACTIONS ── */
+  .main-actions { padding: 0 1rem 1rem; }
+
+  /* ── HOME SCREEN ── */
+  .home-hero {
+    text-align: center; padding: 2rem 1.5rem 1rem;
+  }
+  .home-hero .star { font-size: 48px; display: block; margin-bottom: 0.5rem; }
+  .home-hero h1 { font-size: 28px; font-weight: 700; color: var(--purple); letter-spacing: 1px; }
+  .home-hero p  { font-size: 14px; color: var(--text-muted); margin-top: 6px; line-height: 1.5; }
+  .mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 1rem 1.25rem; }
+  .mode-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem 1rem;
+    text-align: center; cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .mode-card:hover { border-color: var(--purple); background: var(--purple-lt); }
+  .mode-card .mode-icon { font-size: 28px; display: block; margin-bottom: 6px; }
+  .mode-card .mode-title { font-size: 14px; font-weight: 600; color: var(--text); }
+  .mode-card .mode-desc  { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+
+  /* ── SETUP SCREEN ── */
+  .setup-body { padding: 1rem 1.25rem; flex: 1; overflow-y: auto; }
+  .setup-body h2 { font-size: 16px; font-weight: 600; margin-bottom: 0.25rem; }
+  .setup-body .sub { font-size: 13px; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.5; }
+  .checkbox-group { display: flex; flex-direction: column; gap: 8px; margin-top: 0.5rem; }
+  .checkbox-label {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13px; color: var(--text);
+    background: var(--white); border: 0.5px solid var(--border);
+    border-radius: var(--radius-sm); padding: 10px 12px;
+    cursor: pointer;
+  }
+  .checkbox-label input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--purple); }
+  .firebase-note {
+    background: var(--amber-lt); border: 0.5px solid var(--amber);
+    border-radius: var(--radius-sm); padding: 0.75rem; margin-top: 0.75rem;
+    font-size: 12px; color: var(--amber); line-height: 1.5;
+  }
+
+  /* ── END SCREEN ── */
+  .end-body { text-align: center; padding: 2rem 1.5rem; flex: 1; }
+  .end-trophy { font-size: 56px; display: block; margin-bottom: 0.5rem; }
+  .end-title  { font-size: 24px; font-weight: 700; color: var(--text); }
+  .end-sub    { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+  .end-scores { display: flex; gap: 10px; margin: 1.5rem 0; }
+  .end-score-box {
+    flex: 1; background: var(--white); border: 0.5px solid var(--border);
+    border-radius: var(--radius); padding: 1rem; text-align: center;
+  }
+  .end-score-box.end-winner { border-color: var(--teal); background: var(--teal-lt); }
+  .end-score-box .en  { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
+  .end-score-box .ec  { font-size: 30px; font-weight: 700; color: var(--text); }
+  .end-score-box.end-winner .ec { color: var(--teal); }
+
+  /* ── WAITING ── */
+  .waiting-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; text-align: center; }
+  .waiting-body h2 { font-size: 18px; font-weight: 600; margin-bottom: 0.5rem; }
+  .waiting-body p  { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+
+  /* ── COMPUTER THINKING ── */
+  .computer-thinking {
+    font-size: 13px; color: var(--text-muted); text-align: center;
+    padding: 0.5rem; font-style: italic;
+  }
+
+  /* utils */
+  .hidden  { display: none !important; }
+  .mt-1    { margin-top: 0.5rem; }
+  .mt-2    { margin-top: 1rem; }
+  .center  { text-align: center; }
+  .muted   { color: var(--text-muted); font-size: 13px; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SCREEN: HOME
+══════════════════════════════════════════════════════════════ -->
+<div class="screen active" id="screen-home">
+  <div class="home-hero">
+    <span class="star">⭐</span>
+    <h1>COSMIC WAR</h1>
+    <p>Wilson Reading System literacy card game<br>for Substeps 2.1 – 2.5</p>
+  </div>
+  <div class="mode-grid">
+    <div class="mode-card" onclick="goSetup('computer')">
+      <span class="mode-icon">🤖</span>
+      <div class="mode-title">vs Computer</div>
+      <div class="mode-desc">One device, random difficulty</div>
+    </div>
+    <div class="mode-card" onclick="goSetup('local')">
+      <span class="mode-icon">👥</span>
+      <div class="mode-title">Pass & Play</div>
+      <div class="mode-desc">Two players, one device</div>
+    </div>
+    <div class="mode-card" onclick="goSetup('host')">
+      <span class="mode-icon">📡</span>
+      <div class="mode-title">Host Game</div>
+      <div class="mode-desc">Create room, share code</div>
+    </div>
+    <div class="mode-card" onclick="goSetup('join')">
+      <span class="mode-icon">🔗</span>
+      <div class="mode-title">Join Game</div>
+      <div class="mode-desc">Enter a room code</div>
+    </div>
+  </div>
+  <div style="padding: 0 1.25rem 1.5rem;">
+    <div class="card" style="font-size:12px; color:var(--text-muted); line-height:1.6;">
+      <strong style="color:var(--text)">How to play:</strong> Flip cards — higher value wins. The winner taps the sounds of their word aloud, then reads it. If cards tie, a Spelling WAR begins: the winner must correctly spell a word to claim the pot. ⭐ Choice 3 earns Cosmic Bonus points!
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SCREEN: SETUP
+══════════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-setup">
+  <div class="nav">
+    <span class="nav-title">⭐ Cosmic WAR</span>
+    <button class="btn btn-sm" onclick="showScreen('screen-home')">← Back</button>
+  </div>
+  <div class="setup-body">
+    <h2 id="setup-title">Game Setup</h2>
+    <p class="sub" id="setup-sub">Configure your game.</p>
+
+    <div id="setup-names">
+      <label>Your name
+        <input type="text" id="setup-p1name" value="Player 1" />
+      </label>
+      <label id="setup-p2name-label">Opponent name
+        <input type="text" id="setup-p2name" value="Player 2" />
+      </label>
+    </div>
+
+    <div id="setup-join-code" class="hidden">
+      <label>Room code (ask your opponent)
+        <input type="text" id="join-code-input" placeholder="e.g. 4729" maxlength="4"
+          oninput="this.value=this.value.replace(/\D/g,'').toUpperCase()" />
+      </label>
+    </div>
+
+    <label style="margin-top:1rem; display:block; font-size:13px; color:var(--text-muted);">Substeps to include</label>
+    <div class="checkbox-group">
+      <label class="checkbox-label"><input type="checkbox" id="cb-spades" checked>
+        <span>♠ <strong>2.1 & 2.2</strong> — Welded sounds & blends</span></label>
+      <label class="checkbox-label"><input type="checkbox" id="cb-clubs" checked>
+        <span>♣ <strong>2.3</strong> — Closed syllable exceptions</span></label>
+      <label class="checkbox-label"><input type="checkbox" id="cb-hearts" checked>
+        <span>♥ <strong>2.4</strong> — 5-sound syllables & Latin bases</span></label>
+      <label class="checkbox-label"><input type="checkbox" id="cb-diamonds" checked>
+        <span>♦ <strong>2.5</strong> — 3-letter blends & Latin 'ct'</span></label>
+    </div>
+
+    <div id="firebase-note" class="firebase-note hidden">
+      ⚡ <strong>Online multiplayer</strong> requires Firebase. Fill in your credentials in <code>firebase-config.js</code>. See <code>README.md</code> for setup instructions.
+    </div>
+
+    <div class="btn-row" style="margin-top:1.25rem;">
+      <button class="btn btn-primary" id="setup-start-btn" onclick="setupStart()">Start Game →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SCREEN: WAITING FOR OPPONENT
+══════════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-waiting">
+  <div class="nav">
+    <span class="nav-title">⭐ Cosmic WAR</span>
+    <button class="btn btn-sm" onclick="cancelWaiting()">Cancel</button>
+  </div>
+  <div class="waiting-body">
+    <h2>Waiting for opponent…</h2>
+    <div class="room-code-display" id="room-code-display">—</div>
+    <p>Share this code with your opponent.<br>They choose "Join Game" and enter it.</p>
+    <div class="spinner"></div>
+    <p class="mt-2 muted" id="waiting-status">Listening for opponent to join…</p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SCREEN: GAME
+══════════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-game">
+  <div class="nav">
+    <span class="nav-title">⭐ Cosmic WAR</span>
+    <button class="btn btn-sm" onclick="confirmQuit()">Quit</button>
+  </div>
+
+  <!-- Scoreboard -->
+  <div class="scoreboard">
+    <div class="score-box" id="sb-p1">
+      <div class="name" id="sb-p1name">P1</div>
+      <div class="num"  id="sb-p1count">26</div>
+      <div class="sub">cards</div>
+    </div>
+    <div class="score-box" id="sb-p2">
+      <div class="name" id="sb-p2name">P2</div>
+      <div class="num"  id="sb-p2count">26</div>
+      <div class="sub">cards</div>
+    </div>
+  </div>
+
+  <!-- Turn pill -->
+  <div class="turn-row">
+    <span class="turn-pill" id="turn-pill">Waiting…</span>
+  </div>
+
+  <!-- Status -->
+  <div class="status-bar" id="status-bar"></div>
+
+  <!-- Pot -->
+  <div class="pot-area hidden" id="pot-area">
+    <div class="pot-label" id="pot-label">War pot: 0 cards</div>
+    <div class="pot-chips" id="pot-chips"></div>
+  </div>
+
+  <!-- Battle -->
+  <div class="battle-area">
+    <div class="card-zone">
+      <div class="zone-label" id="zone-p1-label">You</div>
+      <div id="zone-p1"><div class="card-empty">—</div></div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <div class="vs-label">vs</div>
+    </div>
+    <div class="card-zone">
+      <div class="zone-label" id="zone-p2-label">Opponent</div>
+      <div id="zone-p2"><div class="card-empty">—</div></div>
+    </div>
+  </div>
+
+  <!-- Word choice panel (reading) -->
+  <div class="panel hidden" id="panel-read">
+    <div class="panel-title" id="panel-read-title">Choose a word to tap and read:</div>
+    <div class="choice-grid" id="choice-grid"></div>
+    <div class="tap-guide hidden" id="tap-guide">
+      <div class="tap-guide-title">Tap each sound — welded sounds use 3 fingers together:</div>
+      <div class="phoneme-row" id="phoneme-row"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-teal" id="confirm-read-btn" disabled onclick="confirmRead()">I read it correctly ✓</button>
+    </div>
+  </div>
+
+  <!-- Spelling WAR panel -->
+  <div class="panel hidden" id="panel-spell">
+    <div class="panel-title" id="panel-spell-title">Spelling WAR — choose a word and spell it:</div>
+    <div class="choice-grid" id="spell-choice-grid"></div>
+    <input type="text" class="spell-input" id="spell-input"
+      placeholder="Type your spelling…" autocomplete="off" autocapitalize="off"
+      oninput="onSpellInput()" />
+    <div class="spell-feedback" id="spell-feedback"></div>
+    <div class="btn-row">
+      <button class="btn btn-teal" id="confirm-spell-btn" disabled onclick="confirmSpelling()">Confirm spelling ✓</button>
+    </div>
+  </div>
+
+  <!-- Computer thinking -->
+  <div class="computer-thinking hidden" id="computer-thinking">🤖 Computer is thinking…</div>
+
+  <!-- Main action -->
+  <div class="main-actions">
+    <button class="btn btn-primary" id="flip-btn" onclick="onFlipBtn()">Flip Cards</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SCREEN: END
+══════════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-end">
+  <div class="nav"><span class="nav-title">⭐ Cosmic WAR</span></div>
+  <div class="end-body">
+    <span class="end-trophy" id="end-trophy">🏆</span>
+    <div class="end-title" id="end-title">Player 1 wins!</div>
+    <div class="end-sub"   id="end-sub">All cards collected</div>
+    <div class="end-scores">
+      <div class="end-score-box" id="end-box-p1">
+        <div class="en" id="end-n1">P1</div>
+        <div class="ec" id="end-c1">0</div>
+        <div class="muted">cards</div>
+      </div>
+      <div class="end-score-box" id="end-box-p2">
+        <div class="en" id="end-n2">P2</div>
+        <div class="ec" id="end-c2">0</div>
+        <div class="muted">cards</div>
+      </div>
+    </div>
+    <div class="btn-row" style="flex-direction:column;gap:8px;">
+      <button class="btn btn-primary" onclick="playAgain()">Play Again</button>
+      <button class="btn" onclick="showScreen('screen-home')">Home</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═════════════════════════════════ SCRIPT ════════════════════════════════ -->
+<script>
+/* ── FIREBASE CONFIG ──────────────────────────────────────────────────────
+   Replace this object with your own Firebase project credentials.
+   Get them at: https://console.firebase.google.com
+   Project Settings → General → Your apps → Firebase SDK snippet → Config
+   ──────────────────────────────────────────────────────────────────────── */
+const FIREBASE_CONFIG = {
+  apiKey:            "YOUR_API_KEY",
+  authDomain:        "YOUR_PROJECT.firebaseapp.com",
+  databaseURL:       "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+  projectId:         "YOUR_PROJECT_ID",
+  storageBucket:     "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId:             "YOUR_APP_ID"
+};
+
+/* ── MASTER WORD DATA ─────────────────────────────────────────────────────*/
+const DECK_DATA = [
+  {suit:'spades',value:1, label:'A', w1:'bank',   w2:'banks',   w3:'sinks'},
+  {suit:'spades',value:2, label:'2', w1:'lung',   w2:'lungs',   w3:'rings'},
+  {suit:'spades',value:3, label:'3', w1:'thank',  w2:'thanks',  w3:'things'},
+  {suit:'spades',value:4, label:'4', w1:'chunk',  w2:'chunks',  w3:'dunks'},
+  {suit:'spades',value:5, label:'5', w1:'belt',   w2:'belts',   w3:'best'},
+  {suit:'spades',value:6, label:'6', w1:'flag',   w2:'flags',   w3:'glass'},
+  {suit:'spades',value:7, label:'7', w1:'step',   w2:'steps',   w3:'stops'},
+  {suit:'spades',value:8, label:'8', w1:'bench',  w2:'benches', w3:'lunch'},
+  {suit:'spades',value:9, label:'9', w1:'brush',  w2:'brushes', w3:'crash'},
+  {suit:'spades',value:10,label:'10',w1:'gift',   w2:'gifts',   w3:'grasp'},
+  {suit:'spades',value:11,label:'J', w1:'pump',   w2:'pumps',   w3:'shelf'},
+  {suit:'spades',value:12,label:'Q', w1:'band',   w2:'bands',   w3:'ranch'},
+  {suit:'spades',value:13,label:'K', w1:'cloth',  w2:'cloths',  w3:'track'},
+  {suit:'clubs', value:1, label:'A', w1:'bold',   w2:'bolds',   w3:'fold'},
+  {suit:'clubs', value:2, label:'2', w1:'child',  w2:'cold',    w3:'colds'},
+  {suit:'clubs', value:3, label:'3', w1:'find',   w2:'finds',   w3:'gold'},
+  {suit:'clubs', value:4, label:'4', w1:'hind',   w2:'hold',    w3:'holds'},
+  {suit:'clubs', value:5, label:'5', w1:'kind',   w2:'kinds',   w3:'mind'},
+  {suit:'clubs', value:6, label:'6', w1:'minds',  w2:'mild',    w3:'mold'},
+  {suit:'clubs', value:7, label:'7', w1:'most',   w2:'old',     w3:'post'},
+  {suit:'clubs', value:8, label:'8', w1:'posts',  w2:'sold',    w3:'told'},
+  {suit:'clubs', value:9, label:'9', w1:'wild',   w2:'wilds',   w3:'wind'},
+  {suit:'clubs', value:10,label:'10',w1:'winds',  w2:'bind',    w3:'binds'},
+  {suit:'clubs', value:11,label:'J', w1:'bolt',   w2:'bolts',   w3:'colt'},
+  {suit:'clubs', value:12,label:'Q', w1:'colts',  w2:'dolt',    w3:'dolts'},
+  {suit:'clubs', value:13,label:'K', w1:'jolt',   w2:'jolts',   w3:'rind'},
+  {suit:'hearts',value:1, label:'A', w1:'blast',  w2:'blasts',  w3:'plants'},
+  {suit:'hearts',value:2, label:'2', w1:'brand',  w2:'brands',  w3:'stamps'},
+  {suit:'hearts',value:3, label:'3', w1:'craft',  w2:'crafts',  w3:'crust'},
+  {suit:'hearts',value:4, label:'4', w1:'draft',  w2:'drafts',  w3:'grants'},
+  {suit:'hearts',value:5, label:'5', w1:'drift',  w2:'drifts',  w3:'prints'},
+  {suit:'hearts',value:6, label:'6', w1:'frost',  w2:'frosts',  w3:'glands'},
+  {suit:'hearts',value:7, label:'7', w1:'grasp',  w2:'grasps',  w3:'twists'},
+  {suit:'hearts',value:8, label:'8', w1:'stand',  w2:'stands',  w3:'trusts'},
+  {suit:'hearts',value:9, label:'9', w1:'stomp',  w2:'stomps',  w3:'stump'},
+  {suit:'hearts',value:10,label:'10',w1:'slant',  w2:'slants',  w3:'squint'},
+  {suit:'hearts',value:11,label:'J', w1:'-rupt- (break)',   w2:'-fess- (acknowledge)', w3:'-sent- (feel)'},
+  {suit:'hearts',value:12,label:'Q', w1:'-pel- (drive)',    w2:'-mit- (send)',          w3:'-pend- (hang)'},
+  {suit:'hearts',value:13,label:'K', w1:'-press- (press)',  w2:'-sist- (stand)',        w3:'-vent- (come)'},
+  {suit:'diamonds',value:1, label:'A', w1:'scrap',  w2:'scraps',  w3:'scrub'},
+  {suit:'diamonds',value:2, label:'2', w1:'splash', w2:'splat',   w3:'splats'},
+  {suit:'diamonds',value:3, label:'3', w1:'split',  w2:'splits',  w3:'sprint'},
+  {suit:'diamonds',value:4, label:'4', w1:'strap',  w2:'straps',  w3:'stress'},
+  {suit:'diamonds',value:5, label:'5', w1:'strict', w2:'string',  w3:'strings'},
+  {suit:'diamonds',value:6, label:'6', w1:'strip',  w2:'strips',  w3:'strong'},
+  {suit:'diamonds',value:7, label:'7', w1:'struck', w2:'strung',  w3:'sprung'},
+  {suit:'diamonds',value:8, label:'8', w1:'midst',  w2:'prompt',  w3:'prompts'},
+  {suit:'diamonds',value:9, label:'9', w1:'script', w2:'scripts', w3:'tempt'},
+  {suit:'diamonds',value:10,label:'10',w1:'strand', w2:'strands', w3:'sprig'},
+  {suit:'diamonds',value:11,label:'J', w1:'-dict- (say)',   w2:'-duct- (lead)',   w3:'-struct- (build)'},
+  {suit:'diamonds',value:12,label:'Q', w1:'-ject- (throw)', w2:'-spect- (look)',  w3:'-tract- (draw)'},
+  {suit:'diamonds',value:13,label:'K', w1:'-fect- (make)',  w2:'-rect- (sight)',  w3:'-vict- (conquer)'},
+];
+
+const SUIT_COLOR  = {spades:'purple', clubs:'teal', hearts:'coral', diamonds:'blue'};
+const SUIT_SYM    = {spades:'♠', clubs:'♣', hearts:'♥', diamonds:'♦'};
+const SUIT_SUB    = {spades:'2.1–2.2', clubs:'2.3', hearts:'2.4', diamonds:'2.5'};
+const WELDED_ENDINGS = ['ang','ing','ong','ung','ank','ink','onk','unk','all','ild','ind','old','olt','ost'];
+const DIGRAPHS       = ['ch','sh','th','wh','ph','ng','nk','ck'];
+
+/* ── STATE ────────────────────────────────────────────────────────────────*/
+let G = {}; // game state
+let mode = ''; // 'computer' | 'local' | 'online-host' | 'online-join'
+let db = null, roomRef = null, myRole = ''; // firebase
+let setupSuits = [];
+
+/* ── FIREBASE INIT ────────────────────────────────────────────────────────*/
+function initFirebase() {
+  if (db) return true;
+  try {
+    if (FIREBASE_CONFIG.apiKey === 'YOUR_API_KEY') return false;
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.database();
+    return true;
+  } catch(e) { return false; }
+}
+
+/* ── SCREEN HELPERS ───────────────────────────────────────────────────────*/
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function $(id) { return document.getElementById(id); }
+function hidden(id, val) { $(id).classList.toggle('hidden', val); }
+
+/* ── HOME / SETUP ─────────────────────────────────────────────────────────*/
+function goSetup(m) {
+  mode = m;
+  $('setup-title').textContent =
+    m==='computer' ? 'Play vs Computer' :
+    m==='local'    ? 'Pass & Play Setup' :
+    m==='host'     ? 'Host an Online Game' :
+                     'Join an Online Game';
+  $('setup-sub').textContent =
+    m==='computer' ? 'One device — the computer opponent uses random difficulty.' :
+    m==='local'    ? 'Two players share one device.' :
+    m==='host'     ? 'You\'ll get a room code to share with your opponent.' :
+                     'Enter the room code your opponent gave you.';
+
+  hidden('setup-p2name-label', m==='computer' || m==='host' || m==='join');
+  hidden('setup-join-code',    m!=='join');
+  hidden('firebase-note',      m!=='host' && m!=='join');
+
+  if (m==='computer') { $('setup-p2name').value = 'Computer'; }
+  if (m==='host' || m==='join') { hidden('firebase-note', false); }
+
+  showScreen('screen-setup');
+}
+
+function getSelectedSuits() {
+  const suits = [];
+  if ($('cb-spades').checked)   suits.push('spades');
+  if ($('cb-clubs').checked)    suits.push('clubs');
+  if ($('cb-hearts').checked)   suits.push('hearts');
+  if ($('cb-diamonds').checked) suits.push('diamonds');
+  return suits;
+}
+
+function setupStart() {
+  setupSuits = getSelectedSuits();
+  if (!setupSuits.length) { alert('Select at least one substep!'); return; }
+
+  const p1 = $('setup-p1name').value.trim() || 'Player 1';
+
+  if (mode === 'computer') {
+    const p2 = 'Computer';
+    startLocalGame(p1, p2, true);
+  } else if (mode === 'local') {
+    const p2 = $('setup-p2name').value.trim() || 'Player 2';
+    startLocalGame(p1, p2, false);
+  } else if (mode === 'host') {
+    hostOnlineGame(p1);
+  } else {
+    const code = $('join-code-input').value.trim();
+    if (!code || code.length < 4) { alert('Enter a valid 4-digit code.'); return; }
+    joinOnlineGame(p1, code);
+  }
+}
+
+/* ── DECK UTILS ───────────────────────────────────────────────────────────*/
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length-1; i > 0; i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+function buildDeck(suits) {
+  return shuffle(DECK_DATA.filter(c => suits.includes(c.suit)));
+}
+
+/* ── LOCAL / COMPUTER GAME ────────────────────────────────────────────────*/
+function startLocalGame(p1name, p2name, isComputer) {
+  const deck = buildDeck(setupSuits);
+  const mid  = Math.floor(deck.length / 2);
+  G = {
+    p1name, p2name,
+    p1deck: deck.slice(0, mid),
+    p2deck: deck.slice(mid),
+    pot: [],
+    phase: 'flip',       // flip | read | spell | war-read | war-spell
+    card1: null, card2: null,
+    winner: 0,           // 1 or 2
+    pendingCards: [],
+    selectedWord: null,
+    spellTarget: null,
+    isComputer,
+    cosmicCount: 0,
+    mode: 'local',
+  };
+  renderGame();
+  showScreen('screen-game');
+  setStatus('');
+  setTurnPill('Both players — flip a card!');
+}
+
+/* ── ONLINE HOST ──────────────────────────────────────────────────────────*/
+function hostOnlineGame(myName) {
+  if (!initFirebase()) {
+    alert('Firebase not configured. See README.md for setup instructions.\n\nFor now, try Pass & Play mode!');
+    return;
+  }
+  const code = Math.floor(1000 + Math.random()*9000).toString();
+  myRole = 'p1';
+  const deck = buildDeck(setupSuits);
+  const mid  = Math.floor(deck.length / 2);
+  const roomData = {
+    p1name: myName, p2name: '',
+    p1deck: deck.slice(0, mid),
+    p2deck: deck.slice(mid),
+    pot: [], phase: 'waiting',
+    card1: null, card2: null,
+    winner: 0, pendingCards: [],
+    selectedWord: null, spellTarget: null,
+    suits: setupSuits
+  };
+  roomRef = db.ref('rooms/' + code);
+  roomRef.set(roomData).then(() => {
+    $('room-code-display').textContent = code;
+    $('waiting-status').textContent = 'Listening for opponent to join…';
+    showScreen('screen-waiting');
+    roomRef.child('p2name').on('value', snap => {
+      if (snap.val()) {
+        roomRef.child('p2name').off();
+        roomRef.update({phase:'flip'});
+        G = { ...roomData, p2name: snap.val(), mode:'online', myRole:'p1', code };
+        listenOnline();
+        renderGame();
+        showScreen('screen-game');
+        setTurnPill('Both players — flip a card!');
+      }
+    });
+  });
+}
+
+function cancelWaiting() {
+  if (roomRef) roomRef.remove();
+  roomRef = null;
+  showScreen('screen-home');
+}
+
+/* ── ONLINE JOIN ──────────────────────────────────────────────────────────*/
+function joinOnlineGame(myName, code) {
+  if (!initFirebase()) {
+    alert('Firebase not configured. See README.md for setup instructions.');
+    return;
+  }
+  myRole = 'p2';
+  roomRef = db.ref('rooms/' + code);
+  roomRef.once('value').then(snap => {
+    if (!snap.exists()) { alert('Room not found. Check the code and try again.'); return; }
+    const d = snap.val();
+    roomRef.update({p2name: myName});
+    G = { ...d, p2name: myName, mode:'online', myRole:'p2', code };
+    listenOnline();
+    renderGame();
+    showScreen('screen-game');
+    setTurnPill('Both players — flip a card!');
+  });
+}
+
+/* ── ONLINE SYNC ──────────────────────────────────────────────────────────*/
+function listenOnline() {
+  if (!roomRef) return;
+  roomRef.on('value', snap => {
+    if (!snap.exists()) return;
+    const d = snap.val();
+    G = { ...G, ...d };
+    G.p1deck = d.p1deck || [];
+    G.p2deck = d.p2deck || [];
+    G.pot    = d.pot || [];
+    renderGame();
+  });
+}
+
+function pushOnline() {
+  if (!roomRef) return;
+  const d = {
+    p1name: G.p1name, p2name: G.p2name,
+    p1deck: G.p1deck, p2deck: G.p2deck,
+    pot: G.pot, phase: G.phase,
+    card1: G.card1 || null, card2: G.card2 || null,
+    winner: G.winner, pendingCards: G.pendingCards || [],
+    selectedWord: G.selectedWord || null, spellTarget: G.spellTarget || null,
+  };
+  roomRef.update(d);
+}
+
+/* ── GAME RENDERING ──────────────────────────────────────────────────────*/
+function renderGame() {
+  // Scores
+  $('sb-p1name').textContent  = G.p1name;
+  $('sb-p2name').textContent  = G.p2name;
+  $('sb-p1count').textContent = G.p1deck.length;
+  $('sb-p2count').textContent = G.p2deck.length;
+  $('sb-p1').classList.toggle('winner-box', G.winner === 1);
+  $('sb-p2').classList.toggle('winner-box', G.winner === 2);
+
+  // Zone labels
+  if (G.mode === 'online') {
+    $('zone-p1-label').textContent = G.myRole==='p1' ? 'You ('+G.p1name+')' : G.p1name;
+    $('zone-p2-label').textContent = G.myRole==='p2' ? 'You ('+G.p2name+')' : G.p2name;
+  } else {
+    $('zone-p1-label').textContent = G.p1name;
+    $('zone-p2-label').textContent = G.p2name;
+  }
+
+  // Cards
+  $('zone-p1').innerHTML = cardHTML(G.card1, G.winner===1);
+  $('zone-p2').innerHTML = cardHTML(G.card2, G.winner===2);
+
+  // Pot
+  const hasPot = G.pot && G.pot.length > 0;
+  hidden('pot-area', !hasPot);
+  if (hasPot) {
+    $('pot-label').textContent = `War pot: ${G.pot.length} cards`;
+    $('pot-chips').innerHTML = G.pot.slice(0,24).map(()=>'<div class="pot-chip"></div>').join('');
+  }
+
+  // Panels
+  hidden('panel-read',  G.phase !== 'read');
+  hidden('panel-spell', G.phase !== 'spell');
+  hidden('computer-thinking', true);
+
+  // Flip button
+  const flipBtn = $('flip-btn');
+  flipBtn.textContent = 'Flip Cards';
+  flipBtn.disabled = false;
+  hidden('flip-btn', G.phase !== 'flip');
+  if (G.mode === 'online' && G.phase === 'flip') {
+    const myTurn = G.myRole === 'p1'; // either can flip; host controls
+    flipBtn.disabled = !myTurn; // only host flips for simplicity
+    if (!myTurn) setTurnPill(`Waiting for ${G.p1name} to flip…`);
+  }
+
+  // Populate panels
+  if (G.phase === 'read' && G.winner) {
+    const wcard = G.winner===1 ? G.card1 : G.card2;
+    $('panel-read-title').textContent = `${G.winner===1?G.p1name:G.p2name} — tap & read a word:`;
+    buildChoiceGrid('choice-grid', wcard, selectReadWord);
+    // In online mode, disable if it's not my turn
+    if (G.mode === 'online' && G.myRole !== (G.winner===1?'p1':'p2')) {
+      $('choice-grid').querySelectorAll('.choice-btn').forEach(b=>b.style.pointerEvents='none');
+      $('confirm-read-btn').disabled = true;
+      setTurnPill(`Waiting for ${G.winner===1?G.p1name:G.p2name} to read…`);
+    }
+  }
+
+  if (G.phase === 'spell' && G.winner) {
+    const wcard = G.winner===1 ? G.card1 : G.card2;
+    $('panel-spell-title').textContent = `${G.winner===1?G.p1name:G.p2name} — spell a word to win the pot:`;
+    buildChoiceGrid('spell-choice-grid', wcard, selectSpellWord);
+    if (G.mode === 'online' && G.myRole !== (G.winner===1?'p1':'p2')) {
+      $('spell-choice-grid').querySelectorAll('.choice-btn').forEach(b=>b.style.pointerEvents='none');
+      $('confirm-spell-btn').disabled = true;
+      setTurnPill(`Waiting for ${G.winner===1?G.p1name:G.p2name} to spell…`);
+    }
+  }
+}
+
+function cardHTML(card, isWinner) {
+  if (!card) return '<div class="card-empty">—</div>';
+  const c = SUIT_COLOR[card.suit];
+  return `<div class="play-card${isWinner?' glow-win':''}">
+    <div class="card-stripe stripe-${card.suit}"></div>
+    <div class="card-val">${card.label}</div>
+    <div class="card-suit-sym suit-sym-${card.suit}">${SUIT_SYM[card.suit]} ${SUIT_SUB[card.suit]}</div>
+    <div class="card-words">
+      <div class="card-word-row"><div class="card-word-lbl">Choice 1</div><div class="card-word-val">${card.w1}</div></div>
+      <div class="card-word-row"><div class="card-word-lbl">Choice 2</div><div class="card-word-val">${card.w2}</div></div>
+      <div class="card-word-row"><div class="card-word-lbl">Choice 3 ⭐</div><div class="card-word-val">${card.w3}</div></div>
+    </div>
+  </div>`;
+}
+
+function buildChoiceGrid(gridId, card, onSelect) {
+  const grid = $(gridId);
+  grid.innerHTML = '';
+  const choices = [
+    {word: card.w1, num:'1', tag:'Simple',          cls:''},
+    {word: card.w2, num:'2', tag:'Intermediate',    cls:''},
+    {word: card.w3, num:'3', tag:'⭐ Cosmic Bonus', cls:'cosmic'},
+  ];
+  choices.forEach(ch => {
+    const btn = document.createElement('div');
+    btn.className = `choice-btn ${ch.cls}`;
+    btn.dataset.word = ch.word;
+    btn.innerHTML = `<div class="choice-num">${ch.num}</div>
+      <div><div class="choice-word">${ch.word}</div><div class="choice-tag">${ch.tag}</div></div>`;
+    btn.onclick = () => onSelect(ch.word, card.suit, btn, gridId);
+    grid.appendChild(btn);
+  });
+}
+
+/* ── PHONEME TAPPING ──────────────────────────────────────────────────────*/
+function segmentWord(raw) {
+  const word = raw.toLowerCase().replace(/-/g,'').split(' ')[0];
+  const result = [];
+  let i = 0;
+  while (i < word.length) {
+    let matched = false;
+    // welded first
+    for (const w of WELDED_ENDINGS) {
+      if (word.slice(i) === w || word.slice(i).startsWith(w) && i > 0) {
+        result.push({text: word.slice(i, i+w.length), welded: true});
+        i += w.length; matched = true; break;
+      }
+    }
+    if (matched) continue;
+    // digraphs
+    for (const d of DIGRAPHS) {
+      if (word.slice(i, i+2) === d) {
+        result.push({text: d, welded: false});
+        i += 2; matched = true; break;
+      }
+    }
+    if (matched) continue;
+    result.push({text: word[i], welded: false});
+    i++;
+  }
+  return result;
+}
+
+function buildTapGuide(word) {
+  const phonemes = segmentWord(word);
+  if (!phonemes.length) { hidden('tap-guide', true); return; }
+  hidden('tap-guide', false);
+  const row = $('phoneme-row');
+  row.innerHTML = '';
+  phonemes.forEach((p, idx) => {
+    const span = document.createElement('span');
+    span.className = 'phoneme' + (p.welded ? ' welded' : '');
+    span.title = p.welded ? '3-finger welded tap' : 'Single tap';
+    span.textContent = p.text;
+    span.onclick = () => {
+      span.classList.add('tapped');
+      setTimeout(() => span.classList.remove('tapped'), 300);
+    };
+    row.appendChild(span);
+    if (idx < phonemes.length - 1) {
+      const sep = document.createElement('span');
+      sep.className = 'phoneme-sep';
+      sep.textContent = '·';
+      row.appendChild(sep);
+    }
+  });
+}
+
+/* ── WORD SELECTION ───────────────────────────────────────────────────────*/
+function selectReadWord(word, suit, btn, gridId) {
+  document.querySelectorAll(`#${gridId} .choice-btn`).forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  G.selectedWord = word;
+  buildTapGuide(word);
+  $('confirm-read-btn').disabled = false;
+}
+
+function selectSpellWord(word, suit, btn, gridId) {
+  document.querySelectorAll(`#${gridId} .choice-btn`).forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  G.spellTarget = word;
+  $('spell-input').value = '';
+  $('spell-feedback').textContent = '';
+  $('spell-input').className = 'spell-input';
+  $('confirm-spell-btn').disabled = true;
+}
+
+function onSpellInput() {
+  const val = $('spell-input').value.trim().toLowerCase();
+  const target = G.spellTarget ? G.spellTarget.toLowerCase().replace(/-/g,'').split(' ')[0] : '';
+  if (!target) { $('spell-feedback').textContent = 'Pick a word above first.'; return; }
+  if (val === target) {
+    $('spell-input').className = 'spell-input correct';
+    $('spell-feedback').textContent = '✓ Correct!';
+    $('spell-feedback').className = 'spell-feedback ok';
+    $('confirm-spell-btn').disabled = false;
+  } else {
+    $('spell-input').className = 'spell-input';
+    $('spell-feedback').textContent = '';
+    $('confirm-spell-btn').disabled = true;
+  }
+}
+
+/* ── GAME ACTIONS ─────────────────────────────────────────────────────────*/
+function onFlipBtn() {
+  if (G.p1deck.length === 0 || G.p2deck.length === 0) { checkGameOver(); return; }
+  flipCards();
+}
+
+function flipCards() {
+  G.card1 = G.p1deck.shift();
+  G.card2 = G.p2deck.shift();
+
+  if (G.card1.value === G.card2.value) {
+    triggerWar();
+  } else {
+    G.winner = G.card1.value > G.card2.value ? 1 : 2;
+    G.pendingCards = [G.card1, G.card2];
+    G.phase = 'read';
+    G.selectedWord = null;
+    setStatus(`${G.winner===1?G.p1name:G.p2name} wins this duel!`, 's-win');
+    setTurnPill(`${G.winner===1?G.p1name:G.p2name} — tap and read`);
+    if (G.mode === 'online') pushOnline();
+    renderGame();
+
+    if (G.isComputer && G.winner === 2) {
+      computerRead();
+    }
+  }
+}
+
+function triggerWar() {
+  G.pot.push(G.card1, G.card2);
+  const count = Math.min(3, G.p1deck.length, G.p2deck.length);
+  for (let i = 0; i < count; i++) {
+    G.pot.push(G.p1deck.shift());
+    G.pot.push(G.p2deck.shift());
+  }
+  if (G.p1deck.length === 0 || G.p2deck.length === 0) {
+    setStatus('Not enough cards for WAR — splitting pot!', 's-war');
+    splitPot();
+    return;
+  }
+  G.card1 = G.p1deck.shift();
+  G.card2 = G.p2deck.shift();
+  G.pot.push(G.card1, G.card2);
+
+  if (G.card1.value === G.card2.value) {
+    renderGame();
+    setStatus('⚔️ DOUBLE WAR!', 's-war');
+    setTimeout(triggerWar, 800);
+    return;
+  }
+
+  G.winner = G.card1.value > G.card2.value ? 1 : 2;
+  G.phase = 'spell';
+  G.spellTarget = null;
+  setStatus(`⚔️ WAR! ${G.winner===1?G.p1name:G.p2name} wins — spell to claim the pot!`, 's-war');
+  setTurnPill(`${G.winner===1?G.p1name:G.p2name} — spell a word`);
+  if (G.mode === 'online') pushOnline();
+  renderGame();
+
+  if (G.isComputer && G.winner === 2) {
+    computerSpell();
+  }
+}
+
+function splitPot() {
+  const half = Math.floor(G.pot.length / 2);
+  G.p1deck.push(...shuffle(G.pot.slice(0, half)));
+  G.p2deck.push(...shuffle(G.pot.slice(half)));
+  G.pot = [];
+  G.phase = 'flip';
+  G.card1 = null; G.card2 = null; G.winner = 0;
+  if (G.mode === 'online') pushOnline();
+  renderGame();
+  setTurnPill('Both players — flip a card!');
+}
+
+function confirmRead() {
+  const wdeck = G.winner===1 ? 'p1deck' : 'p2deck';
+  G[wdeck].push(...shuffle([...G.pendingCards, ...G.pot]));
+  G.pot = [];
+  G.pendingCards = [];
+  G.phase = 'flip';
+  G.card1 = null; G.card2 = null;
+  const wasWinner = G.winner;
+  G.winner = 0;
+  if (G.mode === 'online') pushOnline();
+  renderGame();
+  setStatus(`${wasWinner===1?G.p1name:G.p2name} wins the cards!`, 's-win');
+  setTurnPill('Both players — flip a card!');
+  setTimeout(() => {
+    setStatus('');
+    checkGameOver();
+  }, 1200);
+}
+
+function confirmSpelling() {
+  const wdeck = G.winner===1 ? 'p1deck' : 'p2deck';
+  G[wdeck].push(...shuffle([...G.pot]));
+  G.pot = [];
+  G.phase = 'flip';
+  G.card1 = null; G.card2 = null;
+  const wasWinner = G.winner;
+  G.winner = 0;
+  $('spell-input').value = '';
+  if (G.mode === 'online') pushOnline();
+  renderGame();
+  setStatus(`${wasWinner===1?G.p1name:G.p2name} spells it right — wins the pot! 🏆`, 's-win');
+  setTurnPill('Both players — flip a card!');
+  setTimeout(() => {
+    setStatus('');
+    checkGameOver();
+  }, 1400);
+}
+
+/* ── COMPUTER OPPONENT ────────────────────────────────────────────────────*/
+function computerRead() {
+  hidden('computer-thinking', false);
+  const delay = 1200 + Math.random()*800;
+  setTimeout(() => {
+    hidden('computer-thinking', true);
+    // random difficulty: picks w1, w2, or w3 randomly
+    const wcard = G.card2;
+    const choices = [wcard.w1, wcard.w2, wcard.w3];
+    G.selectedWord = choices[Math.floor(Math.random() * choices.length)];
+    const isCosmicBonus = G.selectedWord === wcard.w3;
+    const msg = isCosmicBonus ? 'Computer reads ⭐ Cosmic Bonus choice!' : 'Computer reads its word.';
+    setStatus(msg, 's-info');
+    setTimeout(confirmRead, 900);
+  }, delay);
+}
+
+function computerSpell() {
+  hidden('computer-thinking', false);
+  const delay = 1500 + Math.random()*1000;
+  setTimeout(() => {
+    hidden('computer-thinking', true);
+    // random: 70% chance of getting it right, occasionally wrong choice
+    const wcard = G.card2;
+    const choices = [wcard.w1, wcard.w2, wcard.w3];
+    G.spellTarget = choices[Math.floor(Math.random() * choices.length)];
+    const success = Math.random() < 0.70;
+    if (success) {
+      setStatus('Computer spells correctly and claims the pot!', 's-info');
+      setTimeout(confirmSpelling, 900);
+    } else {
+      // Computer fails — cards go to player 1
+      setStatus('Computer misspells! You win the pot! 🎉', 's-win');
+      G.p1deck.push(...shuffle([...G.pot]));
+      G.pot = []; G.phase = 'flip'; G.card1 = null; G.card2 = null; G.winner = 0;
+      renderGame();
+      setTimeout(() => { setStatus(''); checkGameOver(); setTurnPill('Flip the next cards!'); }, 1400);
+    }
+  }, delay);
+}
+
+/* ── GAME OVER ────────────────────────────────────────────────────────────*/
+function checkGameOver() {
+  if (G.p1deck.length === 0) { endGame(2); }
+  else if (G.p2deck.length === 0) { endGame(1); }
+}
+
+function endGame(winnerNum) {
+  if (G.mode === 'online' && roomRef) { roomRef.off(); }
+  const wname = winnerNum===1 ? G.p1name : G.p2name;
+  const lname = winnerNum===1 ? G.p2name : G.p1name;
+  $('end-trophy').textContent = winnerNum===1 ? '🏆' : (G.isComputer ? '🤖' : '🏆');
+  $('end-title').textContent = `${wname} wins!`;
+  $('end-sub').textContent   = `${lname} ran out of cards`;
+  $('end-n1').textContent    = G.p1name;
+  $('end-c1').textContent    = G.p1deck.length;
+  $('end-n2').textContent    = G.p2name;
+  $('end-c2').textContent    = G.p2deck.length;
+  $('end-box-p1').classList.toggle('end-winner', winnerNum===1);
+  $('end-box-p2').classList.toggle('end-winner', winnerNum===2);
+  showScreen('screen-end');
+}
+
+function playAgain() {
+  if (mode === 'computer') startLocalGame(G.p1name, 'Computer', true);
+  else if (mode === 'local') startLocalGame(G.p1name, G.p2name, false);
+  else showScreen('screen-home');
+}
+
+function confirmQuit() {
+  if (confirm('Quit this game?')) {
+    if (G.mode === 'online' && roomRef) roomRef.off();
+    showScreen('screen-home');
+  }
+}
+
+/* ── UI HELPERS ───────────────────────────────────────────────────────────*/
+function setStatus(msg, cls='') {
+  const el = $('status-bar');
+  el.textContent = msg;
+  el.className = 'status-bar' + (cls ? ' '+cls : '');
+}
+
+function setTurnPill(txt) {
+  $('turn-pill').textContent = txt;
+}
+</script>
+</body>
+</html>
