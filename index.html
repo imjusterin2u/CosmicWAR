@@ -1,1315 +1,546 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Cosmic WAR</title>
-
-<!-- Firebase v9 compat (CDN, no build step) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  :root {
-    --purple:    #534AB7;
-    --purple-lt: #EEEDFE;
-    --purple-dk: #3C3489;
-    --teal:      #1D9E75;
-    --teal-lt:   #E1F5EE;
-    --coral:     #D85A30;
-    --coral-lt:  #FAECE7;
-    --blue:      #185FA5;
-    --blue-lt:   #E6F1FB;
-    --amber:     #BA7517;
-    --amber-lt:  #FAEEDA;
-    --green:     #3B6D11;
-    --green-lt:  #EAF3DE;
-    --red:       #A32D2D;
-    --red-lt:    #FCEBEB;
-    --text:      #1a1a1a;
-    --text-muted:#666;
-    --border:    rgba(0,0,0,0.12);
-    --surface:   #f8f8f6;
-    --white:     #ffffff;
-    --radius:    10px;
-    --radius-sm: 6px;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --text:     #f0efe8;
-      --text-muted: #999;
-      --border:   rgba(255,255,255,0.12);
-      --surface:  #1e1e1c;
-      --white:    #2a2a28;
-      --purple-lt:#1e1c3a;
-      --teal-lt:  #0a2a1e;
-      --coral-lt: #2a180f;
-      --blue-lt:  #0a1e35;
-      --amber-lt: #2a1e08;
-      --green-lt: #0f1f06;
-      --red-lt:   #2a0f0f;
-    }
-  }
-
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: var(--surface);
-    color: var(--text);
-    min-height: 100dvh;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .screen { display: none; flex-direction: column; flex: 1; }
-  .screen.active { display: flex; }
-
-  /* ── NAV ── */
-  .nav {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 0.75rem 1rem;
-    border-bottom: 0.5px solid var(--border);
-    background: var(--white);
-  }
-  .nav-title { font-size: 16px; font-weight: 600; color: var(--purple); letter-spacing: 0.5px; }
-  .nav-right { font-size: 13px; color: var(--text-muted); }
-
-  /* ── CARDS ── */
-  .card {
-    background: var(--white);
-    border-radius: var(--radius);
-    border: 0.5px solid var(--border);
-    padding: 1.25rem;
-  }
-  .card + .card { margin-top: 0.75rem; }
-
-  /* ── BUTTONS ── */
-  .btn {
-    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-    padding: 10px 18px;
-    border-radius: var(--radius-sm);
-    border: 0.5px solid var(--border);
-    background: var(--white);
-    color: var(--text);
-    font-size: 14px; font-weight: 500;
-    cursor: pointer;
-    transition: opacity 0.15s, transform 0.1s;
-    width: 100%;
-  }
-  .btn:active { transform: scale(0.97); }
-  .btn:disabled { opacity: 0.4; cursor: default; pointer-events: none; }
-  .btn-primary { background: var(--purple); color: #fff; border-color: var(--purple-dk); }
-  .btn-primary:hover { background: var(--purple-dk); }
-  .btn-coral { background: var(--coral); color: #fff; border-color: #993C1D; }
-  .btn-teal  { background: var(--teal);  color: #fff; border-color: #0F6E56; }
-  .btn-sm { padding: 7px 12px; font-size: 13px; width: auto; }
-  .btn-row { display: flex; gap: 8px; margin-top: 0.75rem; }
-  .btn-row .btn { flex: 1; }
-
-  /* ── INPUTS ── */
-  input[type=text], input[type=number] {
-    width: 100%; padding: 10px 12px;
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--border);
-    background: var(--white);
-    color: var(--text);
-    font-size: 15px;
-    margin-top: 0.35rem;
-  }
-  input:focus { outline: 2px solid var(--purple); outline-offset: 1px; border-color: transparent; }
-  label { font-size: 13px; color: var(--text-muted); display: block; margin-top: 0.75rem; }
-  label:first-child { margin-top: 0; }
-
-  /* ── BADGES ── */
-  .badge {
-    display: inline-block;
-    padding: 2px 8px; border-radius: 10px;
-    font-size: 11px; font-weight: 500;
-  }
-  .badge-purple { background: var(--purple-lt); color: var(--purple-dk); }
-  .badge-coral  { background: var(--coral-lt);  color: var(--coral); }
-  .badge-teal   { background: var(--teal-lt);   color: var(--teal); }
-  .badge-amber  { background: var(--amber-lt);  color: var(--amber); }
-
-  /* ── SCOREBOARD ── */
-  .scoreboard { display: flex; gap: 8px; padding: 0.75rem 1rem 0; }
-  .score-box {
-    flex: 1; background: var(--white); border: 0.5px solid var(--border);
-    border-radius: var(--radius); padding: 0.6rem 0.75rem; text-align: center;
-  }
-  .score-box.winner-box { border-color: var(--purple); background: var(--purple-lt); }
-  .score-box .name { font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .score-box .num  { font-size: 24px; font-weight: 600; color: var(--text); line-height: 1.2; }
-  .score-box.winner-box .num { color: var(--purple); }
-  .score-box .sub  { font-size: 10px; color: var(--text-muted); }
-
-  /* ── BATTLE AREA ── */
-  .battle-area {
-    display: flex; align-items: center; justify-content: center;
-    gap: 10px; padding: 0.75rem 1rem;
-  }
-  .card-zone { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; }
-  .card-zone .zone-label { font-size: 11px; color: var(--text-muted); font-weight: 500; }
-
-  .play-card {
-    width: 130px; height: 180px;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-    background: var(--white);
-    display: flex; flex-direction: column; align-items: center;
-    padding: 0 8px 10px;
-    position: relative; overflow: hidden;
-    transition: box-shadow 0.2s;
-  }
-  .play-card.glow { box-shadow: 0 0 0 3px var(--purple); }
-  .play-card.glow-win { box-shadow: 0 0 0 3px var(--teal); }
-
-  .card-stripe { height: 7px; width: 100%; border-radius: 10px 10px 0 0; margin-bottom: 6px; flex-shrink: 0; }
-  .stripe-spades   { background: var(--purple); }
-  .stripe-clubs    { background: var(--teal); }
-  .stripe-hearts   { background: var(--coral); }
-  .stripe-diamonds { background: var(--blue); }
-
-  .card-val  { font-size: 22px; font-weight: 700; color: var(--text); line-height: 1; }
-  .card-suit-sym { font-size: 13px; margin-bottom: 4px; }
-  .suit-sym-spades   { color: var(--purple); }
-  .suit-sym-clubs    { color: var(--teal); }
-  .suit-sym-hearts   { color: var(--coral); }
-  .suit-sym-diamonds { color: var(--blue); }
-
-  .card-words { width: 100%; flex: 1; display: flex; flex-direction: column; gap: 3px; }
-  .card-word-row { font-size: 11px; }
-  .card-word-lbl { color: var(--text-muted); font-size: 9px; }
-  .card-word-val { font-weight: 500; color: var(--text); font-size: 12px; }
-
-  .card-back {
-    width: 130px; height: 180px;
-    border-radius: 10px;
-    background: var(--purple);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 28px;
-  }
-  .card-empty {
-    width: 130px; height: 180px;
-    border-radius: 10px;
-    border: 2px dashed var(--border);
-    display: flex; align-items: center; justify-content: center;
-    color: var(--text-muted); font-size: 12px;
-  }
-
-  .vs-label { font-size: 13px; color: var(--text-muted); font-weight: 500; margin-bottom: 24px; }
-
-  /* ── STATUS BAR ── */
-  .status-bar {
-    text-align: center; font-size: 13px; font-weight: 500;
-    padding: 0.4rem 1rem; min-height: 36px;
-    color: var(--text-muted);
-  }
-  .status-bar.s-win   { color: var(--teal); }
-  .status-bar.s-war   { color: var(--coral); }
-  .status-bar.s-info  { color: var(--purple); }
-
-  /* ── POT ── */
-  .pot-area { padding: 0 1rem; text-align: center; }
-  .pot-label { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
-  .pot-chips { display: flex; gap: 3px; justify-content: center; flex-wrap: wrap; }
-  .pot-chip  { width: 22px; height: 32px; border-radius: 4px; background: var(--purple); opacity: 0.7; }
-
-  /* ── WORD CHOICE PANEL ── */
-  .panel {
-    margin: 0 1rem 0.75rem;
-    background: var(--white);
-    border: 0.5px solid var(--border);
-    border-radius: var(--radius);
-    padding: 1rem;
-  }
-  .panel-title { font-size: 12px; color: var(--text-muted); margin-bottom: 0.6rem; font-weight: 500; }
-
-  .choice-grid { display: flex; flex-direction: column; gap: 6px; }
-  .choice-btn {
-    display: flex; align-items: center; gap: 10px;
-    padding: 10px 12px;
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--border);
-    background: var(--surface);
-    cursor: pointer;
-    transition: background 0.1s;
-    text-align: left;
-  }
-  .choice-btn:hover { background: var(--purple-lt); border-color: var(--purple); }
-  .choice-btn.selected { background: var(--purple-lt); border-color: var(--purple); }
-  .choice-btn .choice-num {
-    width: 22px; height: 22px; border-radius: 50%;
-    background: var(--purple-lt); color: var(--purple-dk);
-    font-size: 11px; font-weight: 600;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-  }
-  .choice-btn.cosmic .choice-num { background: var(--amber-lt); color: var(--amber); }
-  .choice-btn.cosmic { border-color: var(--amber); }
-  .choice-word { font-size: 15px; font-weight: 600; color: var(--text); }
-  .choice-tag  { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
-
-  /* ── TAP GUIDE ── */
-  .tap-guide {
-    background: var(--purple-lt);
-    border-radius: var(--radius-sm);
-    padding: 0.75rem;
-    margin-top: 0.75rem;
-    border: 0.5px solid rgba(83,74,183,0.2);
-  }
-  .tap-guide-title { font-size: 11px; color: var(--purple-dk); font-weight: 500; margin-bottom: 0.5rem; }
-  .phoneme-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
-  .phoneme {
-    min-width: 34px; height: 34px; border-radius: 50%;
-    display: inline-flex; align-items: center; justify-content: center;
-    font-size: 13px; font-weight: 600;
-    border: 2px solid var(--purple);
-    color: var(--purple-dk);
-    background: var(--white);
-    cursor: pointer;
-    transition: background 0.15s, color 0.15s, transform 0.08s;
-    padding: 0 6px;
-  }
-  .phoneme.welded { border-radius: 17px; border-color: var(--coral); color: var(--coral); }
-  .phoneme.tapped { background: var(--purple); color: #fff; transform: scale(0.88); }
-  .phoneme.welded.tapped { background: var(--coral); }
-  .phoneme-sep { color: var(--text-muted); font-size: 16px; }
-
-  /* ── SPELLING INPUT ── */
-  .spell-input {
-    width: 100%; padding: 12px 14px;
-    border-radius: var(--radius-sm);
-    border: 2px solid var(--border);
-    background: var(--white);
-    color: var(--text);
-    font-size: 18px; letter-spacing: 1px;
-    margin-top: 0.75rem;
-    transition: border-color 0.15s;
-  }
-  .spell-input:focus { outline: none; border-color: var(--purple); }
-  .spell-input.correct { border-color: var(--teal); background: var(--teal-lt); }
-  .spell-input.incorrect { border-color: var(--red); }
-  .spell-feedback { font-size: 13px; margin-top: 6px; min-height: 20px; font-weight: 500; }
-  .spell-feedback.ok  { color: var(--green); }
-  .spell-feedback.err { color: var(--red); }
-
-  /* ── ROOM CODE ── */
-  .room-code-display {
-    font-size: 36px; font-weight: 700; letter-spacing: 6px;
-    text-align: center; color: var(--purple);
-    background: var(--purple-lt);
-    border-radius: var(--radius);
-    padding: 1rem;
-    margin: 0.75rem 0;
-  }
-
-  /* ── WAITING SPINNER ── */
-  .spinner {
-    width: 32px; height: 32px;
-    border: 3px solid var(--border);
-    border-top-color: var(--purple);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    margin: 1rem auto;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  /* ── TURN PILL ── */
-  .turn-pill {
-    display: inline-block;
-    background: var(--purple); color: #fff;
-    font-size: 11px; font-weight: 500;
-    padding: 3px 10px; border-radius: 10px;
-    margin: 0 auto 0.25rem;
-  }
-  .turn-row { text-align: center; padding: 0.25rem 1rem 0; }
-
-  /* ── MAIN ACTIONS ── */
-  .main-actions { padding: 0 1rem 1rem; }
-
-  /* ── HOME SCREEN ── */
-  .home-hero {
-    text-align: center; padding: 2rem 1.5rem 1rem;
-  }
-  .home-hero .star { font-size: 48px; display: block; margin-bottom: 0.5rem; }
-  .home-hero h1 { font-size: 28px; font-weight: 700; color: var(--purple); letter-spacing: 1px; }
-  .home-hero p  { font-size: 14px; color: var(--text-muted); margin-top: 6px; line-height: 1.5; }
-  .mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 1rem 1.25rem; }
-  .mode-card {
-    background: var(--white);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 1.25rem 1rem;
-    text-align: center; cursor: pointer;
-    transition: border-color 0.15s, background 0.15s;
-  }
-  .mode-card:hover { border-color: var(--purple); background: var(--purple-lt); }
-  .mode-card .mode-icon { font-size: 28px; display: block; margin-bottom: 6px; }
-  .mode-card .mode-title { font-size: 14px; font-weight: 600; color: var(--text); }
-  .mode-card .mode-desc  { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
-
-  /* ── SETUP SCREEN ── */
-  .setup-body { padding: 1rem 1.25rem; flex: 1; overflow-y: auto; }
-  .setup-body h2 { font-size: 16px; font-weight: 600; margin-bottom: 0.25rem; }
-  .setup-body .sub { font-size: 13px; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.5; }
-  .checkbox-group { display: flex; flex-direction: column; gap: 8px; margin-top: 0.5rem; }
-  .checkbox-label {
-    display: flex; align-items: center; gap: 10px;
-    font-size: 13px; color: var(--text);
-    background: var(--white); border: 0.5px solid var(--border);
-    border-radius: var(--radius-sm); padding: 10px 12px;
-    cursor: pointer;
-  }
-  .checkbox-label input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--purple); }
-  .firebase-note {
-    background: var(--amber-lt); border: 0.5px solid var(--amber);
-    border-radius: var(--radius-sm); padding: 0.75rem; margin-top: 0.75rem;
-    font-size: 12px; color: var(--amber); line-height: 1.5;
-  }
-
-  /* ── END SCREEN ── */
-  .end-body { text-align: center; padding: 2rem 1.5rem; flex: 1; }
-  .end-trophy { font-size: 56px; display: block; margin-bottom: 0.5rem; }
-  .end-title  { font-size: 24px; font-weight: 700; color: var(--text); }
-  .end-sub    { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
-  .end-scores { display: flex; gap: 10px; margin: 1.5rem 0; }
-  .end-score-box {
-    flex: 1; background: var(--white); border: 0.5px solid var(--border);
-    border-radius: var(--radius); padding: 1rem; text-align: center;
-  }
-  .end-score-box.end-winner { border-color: var(--teal); background: var(--teal-lt); }
-  .end-score-box .en  { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
-  .end-score-box .ec  { font-size: 30px; font-weight: 700; color: var(--text); }
-  .end-score-box.end-winner .ec { color: var(--teal); }
-
-  /* ── WAITING ── */
-  .waiting-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; text-align: center; }
-  .waiting-body h2 { font-size: 18px; font-weight: 600; margin-bottom: 0.5rem; }
-  .waiting-body p  { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
-
-  /* ── COMPUTER THINKING ── */
-  .computer-thinking {
-    font-size: 13px; color: var(--text-muted); text-align: center;
-    padding: 0.5rem; font-style: italic;
-  }
-
-  /* utils */
-  .hidden  { display: none !important; }
-  .mt-1    { margin-top: 0.5rem; }
-  .mt-2    { margin-top: 1rem; }
-  .center  { text-align: center; }
-  .muted   { color: var(--text-muted); font-size: 13px; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07080f;--purple:#7c6ff7;--purple-dk:#4a3fa8;--purple-glow:rgba(124,111,247,0.4);
+  --gold:#f5c842;--gold-glow:rgba(245,200,66,0.4);--teal:#2de0a5;--coral:#ff6b4a;
+  --text:#e8e6ff;--muted:#7a7899;--radius:12px;--rsm:7px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100dvh;display:flex;flex-direction:column;overflow-x:hidden}
+#sf{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.star{position:absolute;border-radius:50%;background:#fff;animation:tw var(--d,3s) ease-in-out infinite var(--dl,0s)}
+@keyframes tw{0%,100%{opacity:var(--lo,.15);transform:scale(1)}50%{opacity:var(--hi,.9);transform:scale(1.4)}}
+.nb{position:absolute;border-radius:50%;filter:blur(60px);pointer-events:none}
+.screen{display:none;flex-direction:column;flex:1;position:relative;z-index:1}
+.screen.active{display:flex}
+.nav{display:flex;align-items:center;justify-content:space-between;padding:.65rem 1rem;background:rgba(7,8,15,.75);border-bottom:1px solid rgba(124,111,247,.2);backdrop-filter:blur(12px)}
+.nav-title{font-size:15px;font-weight:700;color:var(--purple);letter-spacing:1px;text-shadow:0 0 12px var(--purple-glow)}
+.bsm{padding:5px 14px;border-radius:20px;border:1px solid rgba(124,111,247,.35);background:rgba(124,111,247,.1);color:var(--text);font-size:12px;cursor:pointer}
+.bsm:hover{background:rgba(124,111,247,.25)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:11px 20px;border-radius:24px;border:1px solid rgba(124,111,247,.4);background:rgba(124,111,247,.12);color:var(--text);font-size:14px;font-weight:600;cursor:pointer;width:100%;transition:all .15s;letter-spacing:.3px}
+.btn:hover{background:rgba(124,111,247,.28);border-color:var(--purple);box-shadow:0 0 14px var(--purple-glow)}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.35;cursor:default;pointer-events:none}
+.bp{background:var(--purple);border-color:var(--purple-dk);color:#fff;box-shadow:0 0 18px var(--purple-glow)}
+.bp:hover{background:var(--purple-dk);box-shadow:0 0 28px var(--purple-glow)}
+.bt{background:rgba(45,224,165,.14);border-color:var(--teal);color:var(--teal)}
+.bt:hover{background:rgba(45,224,165,.28)}
+.br{display:flex;gap:8px;margin-top:.75rem}
+.br .btn{flex:1}
+input[type=text]{width:100%;padding:10px 14px;border-radius:var(--rsm);border:1px solid rgba(124,111,247,.3);background:rgba(255,255,255,.05);color:var(--text);font-size:15px;margin-top:.35rem}
+input:focus{outline:none;border-color:var(--purple);box-shadow:0 0 10px var(--purple-glow)}
+label{font-size:12px;color:var(--muted);display:block;margin-top:.75rem}
+/* HOME */
+.hh{text-align:center;padding:2.2rem 1.5rem .75rem}
+.hl{font-size:52px;display:block;animation:fl 4s ease-in-out infinite}
+@keyframes fl{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.ht{font-size:30px;font-weight:800;letter-spacing:3px;background:linear-gradient(135deg,#c4b5ff,#7c6ff7,#2de0a5);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hs{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.5}
+.xpp{margin:.75rem 1.25rem 0;background:rgba(255,255,255,.04);border:1px solid rgba(124,111,247,.22);border-radius:var(--radius);padding:.9rem 1.1rem}
+.xrr{display:flex;align-items:center;justify-content:space-between;margin-bottom:.45rem}
+.xrank{font-size:14px;font-weight:700;color:var(--gold);text-shadow:0 0 10px var(--gold-glow)}
+.xnum{font-size:12px;color:var(--muted)}
+.xbt{height:7px;border-radius:4px;background:rgba(255,255,255,.08);overflow:hidden}
+.xbf{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--purple),var(--teal));transition:width .6s ease}
+.xnxt{font-size:11px;color:var(--muted);margin-top:4px;text-align:right}
+.hnr{display:flex;align-items:center;gap:8px;margin:.6rem 1.25rem 0}
+.hnr input{margin-top:0;flex:1}
+.hnlbl{font-size:12px;color:var(--muted);white-space:nowrap;flex-shrink:0}
+.mg{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:.9rem 1.25rem}
+.mc{background:rgba(255,255,255,.04);border:1px solid rgba(124,111,247,.2);border-radius:var(--radius);padding:1.2rem 1rem;text-align:center;cursor:pointer;transition:all .18s}
+.mc:hover{border-color:var(--purple);background:rgba(124,111,247,.12);box-shadow:0 0 20px var(--purple-glow)}
+.mi{font-size:28px;display:block;margin-bottom:6px}
+.mt{font-size:13px;font-weight:700;color:var(--text)}
+.md{font-size:11px;color:var(--muted);margin-top:3px}
+/* SETUP */
+.sb{padding:1rem 1.25rem;flex:1;overflow-y:auto}
+.sb h2{font-size:16px;font-weight:700;color:var(--text);margin-bottom:3px}
+.ssub{font-size:13px;color:var(--muted);margin-bottom:1rem;line-height:1.5}
+.cg{display:flex;flex-direction:column;gap:6px;margin-top:.4rem}
+.cl{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text);background:rgba(255,255,255,.04);border:1px solid rgba(124,111,247,.18);border-radius:var(--rsm);padding:9px 12px;cursor:pointer}
+.cl input[type=checkbox]{accent-color:var(--purple);width:15px;height:15px}
+.fn{background:rgba(245,200,66,.08);border:1px solid rgba(245,200,66,.3);border-radius:var(--rsm);padding:.65rem;margin-top:.75rem;font-size:12px;color:#c8a940;line-height:1.5}
+/* SCOREBOARD */
+.sco{display:flex;gap:8px;padding:.65rem 1rem 0}
+.scb{flex:1;background:rgba(255,255,255,.04);border:1px solid rgba(124,111,247,.16);border-radius:var(--radius);padding:.55rem .75rem;text-align:center;transition:all .3s}
+.scb.asc{border-color:var(--teal);box-shadow:0 0 12px rgba(45,224,165,.25)}
+.sn{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.snum{font-size:22px;font-weight:800;color:var(--text)}
+.scb.asc .snum{color:var(--teal)}
+.ssub2{font-size:10px;color:var(--muted)}
+/* TURN + STATUS */
+.tr{text-align:center;padding:.3rem 1rem 0}
+.tp{display:inline-block;background:rgba(124,111,247,.2);border:1px solid rgba(124,111,247,.4);color:var(--purple);font-size:11px;font-weight:600;padding:3px 12px;border-radius:10px;letter-spacing:.3px}
+.stb{text-align:center;font-size:13px;font-weight:600;padding:.35rem 1rem;min-height:32px;color:var(--muted);letter-spacing:.2px}
+.sw{color:var(--teal);text-shadow:0 0 10px rgba(45,224,165,.5)}
+.swar{color:var(--coral);text-shadow:0 0 10px rgba(255,107,74,.5)}
+.si{color:var(--purple)}
+.sco2{color:var(--gold);text-shadow:0 0 12px var(--gold-glow)}
+/* POT */
+.pa{padding:0 1rem;text-align:center}
+.pl{font-size:11px;color:var(--muted);margin-bottom:4px}
+.pcs{display:flex;gap:3px;justify-content:center;flex-wrap:wrap}
+.pc{width:20px;height:28px;border-radius:3px;background:linear-gradient(135deg,var(--purple),var(--purple-dk));box-shadow:0 0 5px var(--purple-glow);opacity:.8}
+/* BATTLE */
+.ba{display:flex;align-items:center;justify-content:center;gap:10px;padding:.55rem 1rem}
+.cz{display:flex;flex-direction:column;align-items:center;gap:5px;flex:1}
+.zl{font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.3px}
+.vsc{display:flex;flex-direction:column;align-items:center;gap:4px;margin-bottom:20px}
+.vsl{font-size:13px;color:var(--muted);font-weight:700}
+/* REAL PLAYING CARDS */
+.pc2{width:118px;height:168px;border-radius:10px;background:#fff;border:1px solid #ccc;box-shadow:0 4px 18px rgba(0,0,0,.55);display:flex;flex-direction:column;position:relative;overflow:hidden;transition:box-shadow .25s;font-family:Georgia,'Times New Roman',serif}
+.pc2.gw{box-shadow:0 0 0 2.5px var(--teal),0 4px 24px rgba(45,224,165,.4)}
+.pc2.gwar{box-shadow:0 0 0 2.5px var(--coral),0 4px 24px rgba(255,107,74,.4)}
+.ptl,.pbr{position:absolute;display:flex;flex-direction:column;align-items:center;line-height:1}
+.ptl{top:5px;left:6px}
+.pbr{bottom:5px;right:6px;transform:rotate(180deg)}
+.pv{font-size:14px;font-weight:800;color:#111;line-height:1.1}
+.ps{font-size:11px;line-height:1}
+.rc .pv,.rc .ps{color:#c0392b}
+.ccs{position:absolute;top:50%;left:50%;transform:translate(-50%,-62%);font-size:40px;opacity:.11;pointer-events:none;user-select:none}
+.rc .ccs{color:#c0392b}
+.bc .ccs{color:#111}
+.ctb{height:4px;width:100%;flex-shrink:0}
+.tsp{background:linear-gradient(90deg,#534AB7,#7c6ff7)}
+.tcl{background:linear-gradient(90deg,#0b7a52,#2de0a5)}
+.the{background:linear-gradient(90deg,#991a00,#ff6b4a)}
+.tdi{background:linear-gradient(90deg,#0a3d7a,#185FA5)}
+.cws{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.055);border-top:1px solid rgba(0,0,0,.07);padding:4px 5px 5px}
+.cwr{font-size:9.5px;color:#333;line-height:1.35}
+.cwlbl{color:#999;font-size:8px;font-family:-apple-system,sans-serif}
+.cwcos{color:#b8860b;font-size:8px;font-family:-apple-system,sans-serif}
+.cwval{font-weight:700;font-family:-apple-system,sans-serif;font-size:10px;color:#111}
+/* CARD BACK */
+.cbk{width:118px;height:168px;border-radius:10px;background:linear-gradient(135deg,#0b0d1a,#1a1240,#0b0d1a);border:1px solid rgba(124,111,247,.5);box-shadow:0 4px 18px rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.cbki{width:100px;height:150px;border-radius:7px;border:2px solid rgba(124,111,247,.3);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px}
+.cbks{font-size:22px;animation:bspin 8s linear infinite}
+@keyframes bspin{to{transform:rotate(360deg)}}
+.cbkt{font-size:9px;letter-spacing:2px;color:rgba(124,111,247,.6);font-weight:700}
+.ce{width:118px;height:168px;border-radius:10px;border:2px dashed rgba(124,111,247,.2);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px}
+/* PANEL */
+.pnl{margin:.45rem 1rem;background:rgba(255,255,255,.04);border:1px solid rgba(124,111,247,.22);border-radius:var(--radius);padding:.85rem;backdrop-filter:blur(8px)}
+.ptitle{font-size:12px;color:var(--muted);margin-bottom:.55rem;font-weight:600;letter-spacing:.3px}
+/* CHOICES */
+.chg{display:flex;flex-direction:column;gap:5px}
+.chb{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:var(--rsm);border:1px solid rgba(124,111,247,.2);background:rgba(255,255,255,.03);cursor:pointer;transition:all .12s}
+.chb:hover{background:rgba(124,111,247,.15);border-color:var(--purple)}
+.chb.sel{background:rgba(124,111,247,.2);border-color:var(--purple);box-shadow:0 0 10px var(--purple-glow)}
+.chb.cos{border-color:rgba(245,200,66,.35)}
+.chb.cos:hover,.chb.cos.sel{background:rgba(245,200,66,.1);border-color:var(--gold);box-shadow:0 0 10px var(--gold-glow)}
+.chn{width:22px;height:22px;border-radius:50%;flex-shrink:0;background:rgba(124,111,247,.25);color:var(--purple);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.chb.cos .chn{background:rgba(245,200,66,.2);color:var(--gold)}
+.chw{font-size:15px;font-weight:700;color:var(--text)}
+.cht{font-size:10px;color:var(--muted);margin-top:1px}
+.chb.cos .cht{color:var(--gold)}
+/* TAP GUIDE */
+.tg{background:rgba(124,111,247,.08);border:1px solid rgba(124,111,247,.18);border-radius:var(--rsm);padding:.6rem;margin-top:.55rem}
+.tgt{font-size:11px;color:rgba(124,111,247,.8);font-weight:600;margin-bottom:.4rem}
+.pr{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+.ph{min-width:32px;height:32px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;padding:0 6px;border:2px solid var(--purple);color:var(--purple);background:rgba(124,111,247,.1);cursor:pointer;transition:all .1s}
+.ph.wld{border-radius:16px;border-color:var(--coral);color:var(--coral);background:rgba(255,107,74,.1)}
+.ph.tpd{background:var(--purple);color:#fff;transform:scale(.88);box-shadow:0 0 10px var(--purple-glow)}
+.ph.wld.tpd{background:var(--coral);box-shadow:0 0 10px rgba(255,107,74,.5)}
+.phsep{color:var(--muted);font-size:14px}
+/* SPELL */
+.si2{width:100%;padding:11px 14px;border-radius:var(--rsm);border:2px solid rgba(124,111,247,.3);background:rgba(255,255,255,.05);color:var(--text);font-size:18px;letter-spacing:1.5px;margin-top:.65rem;transition:border-color .15s}
+.si2:focus{outline:none;border-color:var(--purple);box-shadow:0 0 12px var(--purple-glow)}
+.si2.ok{border-color:var(--teal);background:rgba(45,224,165,.07)}
+.sfb{font-size:13px;margin-top:5px;min-height:18px;font-weight:600}
+.sfb.ok{color:var(--teal)}
+/* MAIN ACTIONS */
+.ma{padding:0 1rem .85rem}
+/* XP TOAST */
+.xt{position:fixed;top:68px;left:50%;transform:translateX(-50%) translateY(-20px);background:linear-gradient(135deg,var(--purple-dk),var(--purple));color:#fff;font-size:13px;font-weight:700;padding:7px 20px;border-radius:20px;box-shadow:0 4px 20px var(--purple-glow);opacity:0;pointer-events:none;z-index:999;transition:all .3s;letter-spacing:.3px}
+.xt.sh{opacity:1;transform:translateX(-50%) translateY(0)}
+/* LEVEL UP */
+.lu{position:fixed;inset:0;z-index:998;background:rgba(7,8,15,.85);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s}
+.lu.sh{opacity:1;pointer-events:all}
+.lub{text-align:center;padding:2.5rem 2rem;background:rgba(11,13,26,.96);border:2px solid var(--gold);border-radius:var(--radius);box-shadow:0 0 60px var(--gold-glow);max-width:300px;width:90%}
+.lust{font-size:50px;animation:lp 1s ease-in-out infinite alternate}
+@keyframes lp{from{transform:scale(1)}to{transform:scale(1.12)}}
+.lutl{font-size:12px;letter-spacing:3px;color:var(--muted);margin:.5rem 0 .25rem}
+.lurn{font-size:22px;font-weight:800;color:var(--gold);text-shadow:0 0 20px var(--gold-glow)}
+/* WAITING */
+.wb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;text-align:center}
+.wb h2{font-size:18px;font-weight:700;margin-bottom:.5rem}
+.wb p{font-size:13px;color:var(--muted);line-height:1.6}
+.rcd{font-size:40px;font-weight:800;letter-spacing:8px;color:var(--gold);text-shadow:0 0 20px var(--gold-glow);background:rgba(245,200,66,.07);border:2px solid rgba(245,200,66,.3);border-radius:var(--radius);padding:1rem 1.5rem;margin:.75rem 0}
+.spin{width:32px;height:32px;border:3px solid rgba(124,111,247,.2);border-top-color:var(--purple);border-radius:50%;animation:sp .8s linear infinite;margin:1rem auto}
+@keyframes sp{to{transform:rotate(360deg)}}
+/* END */
+.eb{text-align:center;padding:2rem 1.5rem;flex:1}
+.etr{font-size:58px;display:block;margin-bottom:.5rem}
+.etl{font-size:24px;font-weight:800;color:var(--text)}
+.esb{font-size:13px;color:var(--muted);margin-top:4px}
+.expe{font-size:14px;font-weight:700;color:var(--gold);text-shadow:0 0 10px var(--gold-glow);margin:.5rem 0}
+.esc{display:flex;gap:10px;margin:1.25rem 0}
+.esb2{flex:1;background:rgba(255,255,255,.04);border:1px solid rgba(124,111,247,.2);border-radius:var(--radius);padding:1rem;text-align:center}
+.esb2.ew{border-color:var(--teal);box-shadow:0 0 14px rgba(45,224,165,.2)}
+.en2{font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px}
+.ec2{font-size:30px;font-weight:800;color:var(--text)}
+.esb2.ew .ec2{color:var(--teal)}
+.ct{font-size:13px;color:var(--muted);font-style:italic;text-align:center;padding:.4rem}
+.hidden{display:none!important}
 </style>
 </head>
 <body>
+<div id="sf"></div>
+<div class="xt" id="xt">+0 XP</div>
+<div class="lu" id="lu" onclick="closeLU()">
+  <div class="lub">
+    <div class="lust">⭐</div>
+    <div class="lutl">RANK UP!</div>
+    <div class="lurn" id="lurn">Navigator</div>
+    <div style="color:var(--muted);font-size:12px;margin-top:.75rem">Tap to continue</div>
+  </div>
+</div>
 
-<!-- ═══════════════════════════════════════════════════════════
-     SCREEN: HOME
-══════════════════════════════════════════════════════════════ -->
-<div class="screen active" id="screen-home">
-  <div class="home-hero">
-    <span class="star">⭐</span>
-    <h1>COSMIC WAR</h1>
-    <p>Wilson Reading System literacy card game<br>for Substeps 2.1 – 2.5</p>
+<!-- HOME -->
+<div class="screen active" id="sh">
+  <div class="hh">
+    <span class="hl">🚀</span>
+    <div class="ht">COSMIC WAR</div>
+    <div class="hs">Wilson Reading System · Substeps 2.1–2.5</div>
   </div>
-  <div class="mode-grid">
-    <div class="mode-card" onclick="goSetup('computer')">
-      <span class="mode-icon">🤖</span>
-      <div class="mode-title">vs Computer</div>
-      <div class="mode-desc">One device, random difficulty</div>
-    </div>
-    <div class="mode-card" onclick="goSetup('local')">
-      <span class="mode-icon">👥</span>
-      <div class="mode-title">Pass & Play</div>
-      <div class="mode-desc">Two players, one device</div>
-    </div>
-    <div class="mode-card" onclick="goSetup('host')">
-      <span class="mode-icon">📡</span>
-      <div class="mode-title">Host Game</div>
-      <div class="mode-desc">Create room, share code</div>
-    </div>
-    <div class="mode-card" onclick="goSetup('join')">
-      <span class="mode-icon">🔗</span>
-      <div class="mode-title">Join Game</div>
-      <div class="mode-desc">Enter a room code</div>
-    </div>
+  <div class="hnr">
+    <span class="hnlbl">Pilot:</span>
+    <input type="text" id="hn" placeholder="Enter your callsign" maxlength="20" oninput="rfh()"/>
   </div>
-  <div style="padding: 0 1.25rem 1.5rem;">
-    <div class="card" style="font-size:12px; color:var(--text-muted); line-height:1.6;">
-      <strong style="color:var(--text)">How to play:</strong> Flip cards — higher value wins. The winner taps the sounds of their word aloud, then reads it. If cards tie, a Spelling WAR begins: the winner must correctly spell a word to claim the pot. ⭐ Choice 3 earns Cosmic Bonus points!
+  <div class="xpp">
+    <div class="xrr"><span class="xrank" id="hr">🛸 Cadet</span><span class="xnum" id="hxn">0 XP</span></div>
+    <div class="xbt"><div class="xbf" id="hxb" style="width:0%"></div></div>
+    <div class="xnxt" id="hxnxt">0 / 100 to next rank</div>
+  </div>
+  <div class="mg">
+    <div class="mc" onclick="gs('computer')"><span class="mi">🤖</span><div class="mt">vs Computer</div><div class="md">One device · random AI</div></div>
+    <div class="mc" onclick="gs('local')"><span class="mi">👾</span><div class="mt">Pass &amp; Play</div><div class="md">Two players · one device</div></div>
+    <div class="mc" onclick="gs('host')"><span class="mi">📡</span><div class="mt">Host Game</div><div class="md">Create room · share code</div></div>
+    <div class="mc" onclick="gs('join')"><span class="mi">🔗</span><div class="mt">Join Game</div><div class="md">Enter room code</div></div>
+  </div>
+  <div style="padding:0 1.25rem .75rem">
+    <div style="background:rgba(255,255,255,.03);border:1px solid rgba(124,111,247,.14);border-radius:var(--radius);padding:.9rem 1rem;font-size:12px;color:var(--muted);line-height:1.75">
+      <strong style="color:var(--text)">How to play:</strong> Flip cards — higher wins. Winner taps sounds &amp; reads a word. Tie = <span style="color:var(--coral);font-weight:700">Spelling WAR</span>. <span style="color:var(--gold);font-weight:700">⭐ Choice 3 = Cosmic Bonus XP!</span>
     </div>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════
-     SCREEN: SETUP
-══════════════════════════════════════════════════════════════ -->
-<div class="screen" id="screen-setup">
-  <div class="nav">
-    <span class="nav-title">⭐ Cosmic WAR</span>
-    <button class="btn btn-sm" onclick="showScreen('screen-home')">← Back</button>
-  </div>
-  <div class="setup-body">
-    <h2 id="setup-title">Game Setup</h2>
-    <p class="sub" id="setup-sub">Configure your game.</p>
-
-    <div id="setup-names">
-      <label>Your name
-        <input type="text" id="setup-p1name" value="Player 1" />
-      </label>
-      <label id="setup-p2name-label">Opponent name
-        <input type="text" id="setup-p2name" value="Player 2" />
-      </label>
+<!-- SETUP -->
+<div class="screen" id="ss">
+  <div class="nav"><span class="nav-title">⭐ COSMIC WAR</span><button class="bsm" onclick="show('sh')">← Back</button></div>
+  <div class="sb">
+    <h2 id="stl">Setup</h2><p class="ssub" id="ssu"></p>
+    <div id="snames">
+      <label>Your callsign<input type="text" id="p1n" value="Player 1"/></label>
+      <label id="p2nl">Opponent callsign<input type="text" id="p2n" value="Player 2"/></label>
     </div>
-
-    <div id="setup-join-code" class="hidden">
-      <label>Room code (ask your opponent)
-        <input type="text" id="join-code-input" placeholder="e.g. 4729" maxlength="4"
-          oninput="this.value=this.value.replace(/\D/g,'').toUpperCase()" />
-      </label>
+    <div id="sjc" class="hidden"><label>Room code (from host)<input type="text" id="jci" placeholder="4-digit code" maxlength="4"/></label></div>
+    <label style="margin-top:1rem;display:block;font-size:12px;color:var(--muted)">Substeps to include</label>
+    <div class="cg">
+      <label class="cl"><input type="checkbox" id="cbs" checked><span>♠ <strong>2.1 &amp; 2.2</strong> — Welded sounds &amp; blends</span></label>
+      <label class="cl"><input type="checkbox" id="cbc" checked><span>♣ <strong>2.3</strong> — Closed syllable exceptions</span></label>
+      <label class="cl"><input type="checkbox" id="cbh" checked><span>♥ <strong>2.4</strong> — 5-sound syllables &amp; Latin bases</span></label>
+      <label class="cl"><input type="checkbox" id="cbd" checked><span>♦ <strong>2.5</strong> — 3-letter blends &amp; Latin ct</span></label>
     </div>
-
-    <label style="margin-top:1rem; display:block; font-size:13px; color:var(--text-muted);">Substeps to include</label>
-    <div class="checkbox-group">
-      <label class="checkbox-label"><input type="checkbox" id="cb-spades" checked>
-        <span>♠ <strong>2.1 & 2.2</strong> — Welded sounds & blends</span></label>
-      <label class="checkbox-label"><input type="checkbox" id="cb-clubs" checked>
-        <span>♣ <strong>2.3</strong> — Closed syllable exceptions</span></label>
-      <label class="checkbox-label"><input type="checkbox" id="cb-hearts" checked>
-        <span>♥ <strong>2.4</strong> — 5-sound syllables & Latin bases</span></label>
-      <label class="checkbox-label"><input type="checkbox" id="cb-diamonds" checked>
-        <span>♦ <strong>2.5</strong> — 3-letter blends & Latin 'ct'</span></label>
-    </div>
-
-    <div id="firebase-note" class="firebase-note hidden">
-      ⚡ <strong>Online multiplayer</strong> requires Firebase. Fill in your credentials in <code>firebase-config.js</code>. See <code>README.md</code> for setup instructions.
-    </div>
-
-    <div class="btn-row" style="margin-top:1.25rem;">
-      <button class="btn btn-primary" id="setup-start-btn" onclick="setupStart()">Start Game →</button>
-    </div>
+    <div id="fbn" class="fn hidden">⚡ Online play needs Firebase. Fill in FIREBASE_CONFIG in index.html — see README.md.</div>
+    <div class="br" style="margin-top:1.25rem"><button class="btn bp" onclick="sstart()">Launch Mission 🚀</button></div>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════
-     SCREEN: WAITING FOR OPPONENT
-══════════════════════════════════════════════════════════════ -->
-<div class="screen" id="screen-waiting">
-  <div class="nav">
-    <span class="nav-title">⭐ Cosmic WAR</span>
-    <button class="btn btn-sm" onclick="cancelWaiting()">Cancel</button>
-  </div>
-  <div class="waiting-body">
-    <h2>Waiting for opponent…</h2>
-    <div class="room-code-display" id="room-code-display">—</div>
+<!-- WAITING -->
+<div class="screen" id="sw2">
+  <div class="nav"><span class="nav-title">⭐ COSMIC WAR</span><button class="bsm" onclick="canW()">Cancel</button></div>
+  <div class="wb">
+    <h2>🛸 Awaiting Co-pilot…</h2>
+    <div class="rcd" id="rcd">—</div>
     <p>Share this code with your opponent.<br>They choose "Join Game" and enter it.</p>
-    <div class="spinner"></div>
-    <p class="mt-2 muted" id="waiting-status">Listening for opponent to join…</p>
+    <div class="spin"></div>
+    <p style="margin-top:1rem;color:var(--muted);font-size:13px" id="wst">Scanning for incoming ships…</p>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════
-     SCREEN: GAME
-══════════════════════════════════════════════════════════════ -->
-<div class="screen" id="screen-game">
-  <div class="nav">
-    <span class="nav-title">⭐ Cosmic WAR</span>
-    <button class="btn btn-sm" onclick="confirmQuit()">Quit</button>
+<!-- GAME -->
+<div class="screen" id="sg">
+  <div class="nav"><span class="nav-title">⭐ COSMIC WAR</span><button class="bsm" onclick="cquit()">Eject 🚀</button></div>
+  <div class="sco">
+    <div class="scb" id="sb1"><div class="sn" id="sn1">P1</div><div class="snum" id="sc1">26</div><div class="ssub2">cards</div></div>
+    <div class="scb" id="sb2"><div class="sn" id="sn2">P2</div><div class="snum" id="sc2">26</div><div class="ssub2">cards</div></div>
   </div>
-
-  <!-- Scoreboard -->
-  <div class="scoreboard">
-    <div class="score-box" id="sb-p1">
-      <div class="name" id="sb-p1name">P1</div>
-      <div class="num"  id="sb-p1count">26</div>
-      <div class="sub">cards</div>
-    </div>
-    <div class="score-box" id="sb-p2">
-      <div class="name" id="sb-p2name">P2</div>
-      <div class="num"  id="sb-p2count">26</div>
-      <div class="sub">cards</div>
-    </div>
+  <div class="tr"><span class="tp" id="tpill">Ready for launch</span></div>
+  <div class="stb" id="stbar"></div>
+  <div class="pa hidden" id="pot">
+    <div class="pl" id="potlbl">War pot: 0 cards</div>
+    <div class="pcs" id="potchips"></div>
   </div>
-
-  <!-- Turn pill -->
-  <div class="turn-row">
-    <span class="turn-pill" id="turn-pill">Waiting…</span>
+  <div class="ba">
+    <div class="cz"><div class="zl" id="zl1">PILOT 1</div><div id="z1"><div class="ce">—</div></div></div>
+    <div class="vsc"><div class="vsl">VS</div></div>
+    <div class="cz"><div class="zl" id="zl2">PILOT 2</div><div id="z2"><div class="ce">—</div></div></div>
   </div>
-
-  <!-- Status -->
-  <div class="status-bar" id="status-bar"></div>
-
-  <!-- Pot -->
-  <div class="pot-area hidden" id="pot-area">
-    <div class="pot-label" id="pot-label">War pot: 0 cards</div>
-    <div class="pot-chips" id="pot-chips"></div>
+  <div class="pnl hidden" id="pread">
+    <div class="ptitle" id="prtl">Choose a word to tap &amp; read:</div>
+    <div class="chg" id="cgrid"></div>
+    <div class="tg hidden" id="tguid">
+      <div class="tgt">👆 Tap each sound (welded sounds = 3 fingers together):</div>
+      <div class="pr" id="phrow"></div>
+    </div>
+    <div class="br"><button class="btn bt" id="crb" disabled onclick="cread()">I read it correctly ✓</button></div>
   </div>
-
-  <!-- Battle -->
-  <div class="battle-area">
-    <div class="card-zone">
-      <div class="zone-label" id="zone-p1-label">You</div>
-      <div id="zone-p1"><div class="card-empty">—</div></div>
-    </div>
-    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
-      <div class="vs-label">vs</div>
-    </div>
-    <div class="card-zone">
-      <div class="zone-label" id="zone-p2-label">Opponent</div>
-      <div id="zone-p2"><div class="card-empty">—</div></div>
-    </div>
+  <div class="pnl hidden" id="pspell">
+    <div class="ptitle" id="pstl">⚔️ Spelling WAR — spell a word to win the pot:</div>
+    <div class="chg" id="sgrid"></div>
+    <input type="text" class="si2" id="spinput" placeholder="Type spelling here…" autocomplete="off" autocapitalize="off" oninput="osp()"/>
+    <div class="sfb" id="spfb"></div>
+    <div class="br"><button class="btn bt" id="csb" disabled onclick="cspell()">Confirm ✓</button></div>
   </div>
-
-  <!-- Word choice panel (reading) -->
-  <div class="panel hidden" id="panel-read">
-    <div class="panel-title" id="panel-read-title">Choose a word to tap and read:</div>
-    <div class="choice-grid" id="choice-grid"></div>
-    <div class="tap-guide hidden" id="tap-guide">
-      <div class="tap-guide-title">Tap each sound — welded sounds use 3 fingers together:</div>
-      <div class="phoneme-row" id="phoneme-row"></div>
-    </div>
-    <div class="btn-row">
-      <button class="btn btn-teal" id="confirm-read-btn" disabled onclick="confirmRead()">I read it correctly ✓</button>
-    </div>
-  </div>
-
-  <!-- Spelling WAR panel -->
-  <div class="panel hidden" id="panel-spell">
-    <div class="panel-title" id="panel-spell-title">Spelling WAR — choose a word and spell it:</div>
-    <div class="choice-grid" id="spell-choice-grid"></div>
-    <input type="text" class="spell-input" id="spell-input"
-      placeholder="Type your spelling…" autocomplete="off" autocapitalize="off"
-      oninput="onSpellInput()" />
-    <div class="spell-feedback" id="spell-feedback"></div>
-    <div class="btn-row">
-      <button class="btn btn-teal" id="confirm-spell-btn" disabled onclick="confirmSpelling()">Confirm spelling ✓</button>
-    </div>
-  </div>
-
-  <!-- Computer thinking -->
-  <div class="computer-thinking hidden" id="computer-thinking">🤖 Computer is thinking…</div>
-
-  <!-- Main action -->
-  <div class="main-actions">
-    <button class="btn btn-primary" id="flip-btn" onclick="onFlipBtn()">Flip Cards</button>
-  </div>
+  <div class="ct hidden" id="cthink">🤖 Computer calculating trajectory…</div>
+  <div class="ma"><button class="btn bp" id="fbtn" onclick="oflip()">🚀 Launch Cards</button></div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════
-     SCREEN: END
-══════════════════════════════════════════════════════════════ -->
-<div class="screen" id="screen-end">
-  <div class="nav"><span class="nav-title">⭐ Cosmic WAR</span></div>
-  <div class="end-body">
-    <span class="end-trophy" id="end-trophy">🏆</span>
-    <div class="end-title" id="end-title">Player 1 wins!</div>
-    <div class="end-sub"   id="end-sub">All cards collected</div>
-    <div class="end-scores">
-      <div class="end-score-box" id="end-box-p1">
-        <div class="en" id="end-n1">P1</div>
-        <div class="ec" id="end-c1">0</div>
-        <div class="muted">cards</div>
-      </div>
-      <div class="end-score-box" id="end-box-p2">
-        <div class="en" id="end-n2">P2</div>
-        <div class="ec" id="end-c2">0</div>
-        <div class="muted">cards</div>
-      </div>
+<!-- END -->
+<div class="screen" id="se">
+  <div class="nav"><span class="nav-title">⭐ COSMIC WAR</span></div>
+  <div class="eb">
+    <span class="etr" id="etr">🏆</span>
+    <div class="etl" id="etl">Player 1 wins!</div>
+    <div class="esb" id="esub">Mission complete</div>
+    <div class="expe" id="expe"></div>
+    <div class="esc">
+      <div class="esb2" id="eb1"><div class="en2" id="en1">P1</div><div class="ec2" id="ec1">0</div><div style="font-size:10px;color:var(--muted)">cards</div></div>
+      <div class="esb2" id="eb2"><div class="en2" id="en2">P2</div><div class="ec2" id="ec2">0</div><div style="font-size:10px;color:var(--muted)">cards</div></div>
     </div>
-    <div class="btn-row" style="flex-direction:column;gap:8px;">
-      <button class="btn btn-primary" onclick="playAgain()">Play Again</button>
-      <button class="btn" onclick="showScreen('screen-home')">Home</button>
+    <div class="xpp" style="margin:0 0 1rem">
+      <div class="xrr"><span class="xrank" id="er">🛸 Cadet</span><span class="xnum" id="exn">0 XP</span></div>
+      <div class="xbt"><div class="xbf" id="exb" style="width:0%"></div></div>
+    </div>
+    <div class="br" style="flex-direction:column;gap:8px">
+      <button class="btn bp" onclick="pag()">Play Again 🚀</button>
+      <button class="btn" onclick="show('sh')">Mission Select</button>
     </div>
   </div>
 </div>
 
-<!-- ═════════════════════════════════ SCRIPT ════════════════════════════════ -->
 <script>
-/* ── FIREBASE CONFIG ──────────────────────────────────────────────────────
-   Replace this object with your own Firebase project credentials.
-   Get them at: https://console.firebase.google.com
-   Project Settings → General → Your apps → Firebase SDK snippet → Config
-   ──────────────────────────────────────────────────────────────────────── */
-const FIREBASE_CONFIG = {
-  apiKey:            "YOUR_API_KEY",
-  authDomain:        "YOUR_PROJECT.firebaseapp.com",
-  databaseURL:       "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
-  projectId:         "YOUR_PROJECT_ID",
-  storageBucket:     "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId:             "YOUR_APP_ID"
-};
+/* FIREBASE CONFIG */
+const FC={apiKey:"YOUR_API_KEY",authDomain:"YOUR_PROJECT.firebaseapp.com",databaseURL:"https://YOUR_PROJECT-default-rtdb.firebaseio.com",projectId:"YOUR_PROJECT_ID",storageBucket:"YOUR_PROJECT.appspot.com",messagingSenderId:"YOUR_SENDER_ID",appId:"YOUR_APP_ID"};
 
-/* ── MASTER WORD DATA ─────────────────────────────────────────────────────*/
-const DECK_DATA = [
-  {suit:'spades',value:1, label:'A', w1:'bank',   w2:'banks',   w3:'sinks'},
-  {suit:'spades',value:2, label:'2', w1:'lung',   w2:'lungs',   w3:'rings'},
-  {suit:'spades',value:3, label:'3', w1:'thank',  w2:'thanks',  w3:'things'},
-  {suit:'spades',value:4, label:'4', w1:'chunk',  w2:'chunks',  w3:'dunks'},
-  {suit:'spades',value:5, label:'5', w1:'belt',   w2:'belts',   w3:'best'},
-  {suit:'spades',value:6, label:'6', w1:'flag',   w2:'flags',   w3:'glass'},
-  {suit:'spades',value:7, label:'7', w1:'step',   w2:'steps',   w3:'stops'},
-  {suit:'spades',value:8, label:'8', w1:'bench',  w2:'benches', w3:'lunch'},
-  {suit:'spades',value:9, label:'9', w1:'brush',  w2:'brushes', w3:'crash'},
-  {suit:'spades',value:10,label:'10',w1:'gift',   w2:'gifts',   w3:'grasp'},
-  {suit:'spades',value:11,label:'J', w1:'pump',   w2:'pumps',   w3:'shelf'},
-  {suit:'spades',value:12,label:'Q', w1:'band',   w2:'bands',   w3:'ranch'},
-  {suit:'spades',value:13,label:'K', w1:'cloth',  w2:'cloths',  w3:'track'},
-  {suit:'clubs', value:1, label:'A', w1:'bold',   w2:'bolds',   w3:'fold'},
-  {suit:'clubs', value:2, label:'2', w1:'child',  w2:'cold',    w3:'colds'},
-  {suit:'clubs', value:3, label:'3', w1:'find',   w2:'finds',   w3:'gold'},
-  {suit:'clubs', value:4, label:'4', w1:'hind',   w2:'hold',    w3:'holds'},
-  {suit:'clubs', value:5, label:'5', w1:'kind',   w2:'kinds',   w3:'mind'},
-  {suit:'clubs', value:6, label:'6', w1:'minds',  w2:'mild',    w3:'mold'},
-  {suit:'clubs', value:7, label:'7', w1:'most',   w2:'old',     w3:'post'},
-  {suit:'clubs', value:8, label:'8', w1:'posts',  w2:'sold',    w3:'told'},
-  {suit:'clubs', value:9, label:'9', w1:'wild',   w2:'wilds',   w3:'wind'},
-  {suit:'clubs', value:10,label:'10',w1:'winds',  w2:'bind',    w3:'binds'},
-  {suit:'clubs', value:11,label:'J', w1:'bolt',   w2:'bolts',   w3:'colt'},
-  {suit:'clubs', value:12,label:'Q', w1:'colts',  w2:'dolt',    w3:'dolts'},
-  {suit:'clubs', value:13,label:'K', w1:'jolt',   w2:'jolts',   w3:'rind'},
-  {suit:'hearts',value:1, label:'A', w1:'blast',  w2:'blasts',  w3:'plants'},
-  {suit:'hearts',value:2, label:'2', w1:'brand',  w2:'brands',  w3:'stamps'},
-  {suit:'hearts',value:3, label:'3', w1:'craft',  w2:'crafts',  w3:'crust'},
-  {suit:'hearts',value:4, label:'4', w1:'draft',  w2:'drafts',  w3:'grants'},
-  {suit:'hearts',value:5, label:'5', w1:'drift',  w2:'drifts',  w3:'prints'},
-  {suit:'hearts',value:6, label:'6', w1:'frost',  w2:'frosts',  w3:'glands'},
-  {suit:'hearts',value:7, label:'7', w1:'grasp',  w2:'grasps',  w3:'twists'},
-  {suit:'hearts',value:8, label:'8', w1:'stand',  w2:'stands',  w3:'trusts'},
-  {suit:'hearts',value:9, label:'9', w1:'stomp',  w2:'stomps',  w3:'stump'},
-  {suit:'hearts',value:10,label:'10',w1:'slant',  w2:'slants',  w3:'squint'},
-  {suit:'hearts',value:11,label:'J', w1:'-rupt- (break)',   w2:'-fess- (acknowledge)', w3:'-sent- (feel)'},
-  {suit:'hearts',value:12,label:'Q', w1:'-pel- (drive)',    w2:'-mit- (send)',          w3:'-pend- (hang)'},
-  {suit:'hearts',value:13,label:'K', w1:'-press- (press)',  w2:'-sist- (stand)',        w3:'-vent- (come)'},
-  {suit:'diamonds',value:1, label:'A', w1:'scrap',  w2:'scraps',  w3:'scrub'},
-  {suit:'diamonds',value:2, label:'2', w1:'splash', w2:'splat',   w3:'splats'},
-  {suit:'diamonds',value:3, label:'3', w1:'split',  w2:'splits',  w3:'sprint'},
-  {suit:'diamonds',value:4, label:'4', w1:'strap',  w2:'straps',  w3:'stress'},
-  {suit:'diamonds',value:5, label:'5', w1:'strict', w2:'string',  w3:'strings'},
-  {suit:'diamonds',value:6, label:'6', w1:'strip',  w2:'strips',  w3:'strong'},
-  {suit:'diamonds',value:7, label:'7', w1:'struck', w2:'strung',  w3:'sprung'},
-  {suit:'diamonds',value:8, label:'8', w1:'midst',  w2:'prompt',  w3:'prompts'},
-  {suit:'diamonds',value:9, label:'9', w1:'script', w2:'scripts', w3:'tempt'},
-  {suit:'diamonds',value:10,label:'10',w1:'strand', w2:'strands', w3:'sprig'},
-  {suit:'diamonds',value:11,label:'J', w1:'-dict- (say)',   w2:'-duct- (lead)',   w3:'-struct- (build)'},
-  {suit:'diamonds',value:12,label:'Q', w1:'-ject- (throw)', w2:'-spect- (look)',  w3:'-tract- (draw)'},
-  {suit:'diamonds',value:13,label:'K', w1:'-fect- (make)',  w2:'-rect- (sight)',  w3:'-vict- (conquer)'},
+/* DECK */
+const DD=[
+  {s:'spades',v:1,l:'A',w1:'bank',w2:'banks',w3:'sinks'},{s:'spades',v:2,l:'2',w1:'lung',w2:'lungs',w3:'rings'},{s:'spades',v:3,l:'3',w1:'thank',w2:'thanks',w3:'things'},{s:'spades',v:4,l:'4',w1:'chunk',w2:'chunks',w3:'dunks'},{s:'spades',v:5,l:'5',w1:'belt',w2:'belts',w3:'best'},{s:'spades',v:6,l:'6',w1:'flag',w2:'flags',w3:'glass'},{s:'spades',v:7,l:'7',w1:'step',w2:'steps',w3:'stops'},{s:'spades',v:8,l:'8',w1:'bench',w2:'benches',w3:'lunch'},{s:'spades',v:9,l:'9',w1:'brush',w2:'brushes',w3:'crash'},{s:'spades',v:10,l:'10',w1:'gift',w2:'gifts',w3:'grasp'},{s:'spades',v:11,l:'J',w1:'pump',w2:'pumps',w3:'shelf'},{s:'spades',v:12,l:'Q',w1:'band',w2:'bands',w3:'ranch'},{s:'spades',v:13,l:'K',w1:'cloth',w2:'cloths',w3:'track'},
+  {s:'clubs',v:1,l:'A',w1:'bold',w2:'bolds',w3:'fold'},{s:'clubs',v:2,l:'2',w1:'child',w2:'cold',w3:'colds'},{s:'clubs',v:3,l:'3',w1:'find',w2:'finds',w3:'gold'},{s:'clubs',v:4,l:'4',w1:'hind',w2:'hold',w3:'holds'},{s:'clubs',v:5,l:'5',w1:'kind',w2:'kinds',w3:'mind'},{s:'clubs',v:6,l:'6',w1:'minds',w2:'mild',w3:'mold'},{s:'clubs',v:7,l:'7',w1:'most',w2:'old',w3:'post'},{s:'clubs',v:8,l:'8',w1:'posts',w2:'sold',w3:'told'},{s:'clubs',v:9,l:'9',w1:'wild',w2:'wilds',w3:'wind'},{s:'clubs',v:10,l:'10',w1:'winds',w2:'bind',w3:'binds'},{s:'clubs',v:11,l:'J',w1:'bolt',w2:'bolts',w3:'colt'},{s:'clubs',v:12,l:'Q',w1:'colts',w2:'dolt',w3:'dolts'},{s:'clubs',v:13,l:'K',w1:'jolt',w2:'jolts',w3:'rind'},
+  {s:'hearts',v:1,l:'A',w1:'blast',w2:'blasts',w3:'plants'},{s:'hearts',v:2,l:'2',w1:'brand',w2:'brands',w3:'stamps'},{s:'hearts',v:3,l:'3',w1:'craft',w2:'crafts',w3:'crust'},{s:'hearts',v:4,l:'4',w1:'draft',w2:'drafts',w3:'grants'},{s:'hearts',v:5,l:'5',w1:'drift',w2:'drifts',w3:'prints'},{s:'hearts',v:6,l:'6',w1:'frost',w2:'frosts',w3:'glands'},{s:'hearts',v:7,l:'7',w1:'grasp',w2:'grasps',w3:'twists'},{s:'hearts',v:8,l:'8',w1:'stand',w2:'stands',w3:'trusts'},{s:'hearts',v:9,l:'9',w1:'stomp',w2:'stomps',w3:'stump'},{s:'hearts',v:10,l:'10',w1:'slant',w2:'slants',w3:'squint'},{s:'hearts',v:11,l:'J',w1:'-rupt- (break)',w2:'-fess- (acknowledge)',w3:'-sent- (feel)'},{s:'hearts',v:12,l:'Q',w1:'-pel- (drive)',w2:'-mit- (send)',w3:'-pend- (hang)'},{s:'hearts',v:13,l:'K',w1:'-press- (press)',w2:'-sist- (stand)',w3:'-vent- (come)'},
+  {s:'diamonds',v:1,l:'A',w1:'scrap',w2:'scraps',w3:'scrub'},{s:'diamonds',v:2,l:'2',w1:'splash',w2:'splat',w3:'splats'},{s:'diamonds',v:3,l:'3',w1:'split',w2:'splits',w3:'sprint'},{s:'diamonds',v:4,l:'4',w1:'strap',w2:'straps',w3:'stress'},{s:'diamonds',v:5,l:'5',w1:'strict',w2:'string',w3:'strings'},{s:'diamonds',v:6,l:'6',w1:'strip',w2:'strips',w3:'strong'},{s:'diamonds',v:7,l:'7',w1:'struck',w2:'strung',w3:'sprung'},{s:'diamonds',v:8,l:'8',w1:'midst',w2:'prompt',w3:'prompts'},{s:'diamonds',v:9,l:'9',w1:'script',w2:'scripts',w3:'tempt'},{s:'diamonds',v:10,l:'10',w1:'strand',w2:'strands',w3:'sprig'},{s:'diamonds',v:11,l:'J',w1:'-dict- (say)',w2:'-duct- (lead)',w3:'-struct- (build)'},{s:'diamonds',v:12,l:'Q',w1:'-ject- (throw)',w2:'-spect- (look)',w3:'-tract- (draw)'},{s:'diamonds',v:13,l:'K',w1:'-fect- (make)',w2:'-rect- (sight)',w3:'-vict- (conquer)'}
 ];
+const SYMS={spades:'♠',clubs:'♣',hearts:'♥',diamonds:'♦'};
+const SUBS={spades:'2.1–2.2',clubs:'2.3',hearts:'2.4',diamonds:'2.5'};
+const REDS={hearts:true,diamonds:true};
+const WLDS=['ang','ing','ong','ung','ank','ink','onk','unk','all','ild','ind','old','olt','ost'];
+const DIGS=['ch','sh','th','wh','ph','ng','nk','ck'];
 
-const SUIT_COLOR  = {spades:'purple', clubs:'teal', hearts:'coral', diamonds:'blue'};
-const SUIT_SYM    = {spades:'♠', clubs:'♣', hearts:'♥', diamonds:'♦'};
-const SUIT_SUB    = {spades:'2.1–2.2', clubs:'2.3', hearts:'2.4', diamonds:'2.5'};
-const WELDED_ENDINGS = ['ang','ing','ong','ung','ank','ink','onk','unk','all','ild','ind','old','olt','ost'];
-const DIGRAPHS       = ['ch','sh','th','wh','ph','ng','nk','ck'];
+/* RANKS */
+const RANKS=[{n:'🛸 Cadet',x:0},{n:'🌙 Navigator',x:100},{n:'⭐ Pilot',x:250},{n:'🪐 Commander',x:500},{n:'🌠 Captain',x:900},{n:'🚀 Major',x:1400},{n:'🌌 Colonel',x:2100},{n:'☄️ Admiral',x:3000},{n:'🌟 Star Admiral',x:4200},{n:'🏆 Cosmic Legend',x:6000}];
+const lxp=n=>{try{const d=localStorage.getItem('cwxp_'+n);return d?JSON.parse(d):{xp:0}}catch(e){return{xp:0}}};
+const sxp=(n,d)=>{try{localStorage.setItem('cwxp_'+n,JSON.stringify(d))}catch(e){}};
+const grk=x=>{let r=RANKS[0];for(const k of RANKS){if(x>=k.x)r=k;}return r};
+const gnx=x=>{for(const k of RANKS){if(k.x>x)return k;}return null};
+function gpr(x){const c=grk(x),nx=gnx(x);if(!nx)return{p:100,c,nx:null,tn:0};return{p:((x-c.x)/(nx.x-c.x))*100,c,nx,tn:nx.x-x}}
+function uxd(name,pfx){const{xp}=lxp(name),{p,c,nx,tn}=gpr(xp);
+  const re=q(pfx+'-rank')||q(pfx+'r')||q('h'+'r');
+  if(q(pfx+'r'))q(pfx+'r').textContent=c.n;if(q('h'+'r')&&pfx==='h')q('hr').textContent=c.n;
+  if(q(pfx+'xn'))q(pfx+'xn').textContent=xp+' XP';if(q('hxn')&&pfx==='h')q('hxn').textContent=xp+' XP';
+  if(q(pfx+'xb'))q(pfx+'xb').style.width=Math.min(p,100)+'%';if(q('hxb')&&pfx==='h')q('hxb').style.width=Math.min(p,100)+'%';
+  if(q(pfx+'xnxt')||q('hxnxt'))try{(q(pfx+'xnxt')||q('hxnxt')).textContent=nx?tn+' XP to '+nx.n:'MAX RANK'}catch(e){}}
+function rfh(){const n=(q('hn').value||'Pilot').trim();try{q('hr').textContent=grk(lxp(n).xp).n;const{p,c,nx,tn}=gpr(lxp(n).xp);q('hxn').textContent=lxp(n).xp+' XP';q('hxb').style.width=Math.min(p,100)+'%';q('hxnxt').textContent=nx?tn+' XP to '+nx.n:'MAX RANK'}catch(e){}}
+function awdXP(name,amt){if(!name||name==='Computer')return;const d=lxp(name),old=grk(d.xp).n;d.xp+=amt;sxp(name,d);if(grk(d.xp).n!==old)setTimeout(()=>showLU(grk(d.xp).n),700);shxt('+'+amt+' XP')}
+function shxt(m){const t=q('xt');t.textContent=m;t.classList.add('sh');setTimeout(()=>t.classList.remove('sh'),1800)}
+function showLU(rn){q('lurn').textContent=rn;q('lu').classList.add('sh');SFX.lvl()}
+function closeLU(){q('lu').classList.remove('sh')}
 
-/* ── STATE ────────────────────────────────────────────────────────────────*/
-let G = {}; // game state
-let mode = ''; // 'computer' | 'local' | 'online-host' | 'online-join'
-let db = null, roomRef = null, myRole = ''; // firebase
-let setupSuits = [];
-
-/* ── FIREBASE INIT ────────────────────────────────────────────────────────*/
-function initFirebase() {
-  if (db) return true;
-  try {
-    if (FIREBASE_CONFIG.apiKey === 'YOUR_API_KEY') return false;
-    firebase.initializeApp(FIREBASE_CONFIG);
-    db = firebase.database();
-    return true;
-  } catch(e) { return false; }
-}
-
-/* ── SCREEN HELPERS ───────────────────────────────────────────────────────*/
-function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-}
-function $(id) { return document.getElementById(id); }
-function hidden(id, val) { $(id).classList.toggle('hidden', val); }
-
-/* ── HOME / SETUP ─────────────────────────────────────────────────────────*/
-function goSetup(m) {
-  mode = m;
-  $('setup-title').textContent =
-    m==='computer' ? 'Play vs Computer' :
-    m==='local'    ? 'Pass & Play Setup' :
-    m==='host'     ? 'Host an Online Game' :
-                     'Join an Online Game';
-  $('setup-sub').textContent =
-    m==='computer' ? 'One device — the computer opponent uses random difficulty.' :
-    m==='local'    ? 'Two players share one device.' :
-    m==='host'     ? 'You\'ll get a room code to share with your opponent.' :
-                     'Enter the room code your opponent gave you.';
-
-  hidden('setup-p2name-label', m==='computer' || m==='host' || m==='join');
-  hidden('setup-join-code',    m!=='join');
-  hidden('firebase-note',      m!=='host' && m!=='join');
-
-  if (m==='computer') { $('setup-p2name').value = 'Computer'; }
-  if (m==='host' || m==='join') { hidden('firebase-note', false); }
-
-  showScreen('screen-setup');
-}
-
-function getSelectedSuits() {
-  const suits = [];
-  if ($('cb-spades').checked)   suits.push('spades');
-  if ($('cb-clubs').checked)    suits.push('clubs');
-  if ($('cb-hearts').checked)   suits.push('hearts');
-  if ($('cb-diamonds').checked) suits.push('diamonds');
-  return suits;
-}
-
-function setupStart() {
-  setupSuits = getSelectedSuits();
-  if (!setupSuits.length) { alert('Select at least one substep!'); return; }
-
-  const p1 = $('setup-p1name').value.trim() || 'Player 1';
-
-  if (mode === 'computer') {
-    const p2 = 'Computer';
-    startLocalGame(p1, p2, true);
-  } else if (mode === 'local') {
-    const p2 = $('setup-p2name').value.trim() || 'Player 2';
-    startLocalGame(p1, p2, false);
-  } else if (mode === 'host') {
-    hostOnlineGame(p1);
-  } else {
-    const code = $('join-code-input').value.trim();
-    if (!code || code.length < 4) { alert('Enter a valid 4-digit code.'); return; }
-    joinOnlineGame(p1, code);
+/* SOUND */
+const SFX=(()=>{
+  let cx=null;
+  const ac=()=>{if(!cx)cx=new(window.AudioContext||window.webkitAudioContext)();return cx};
+  const tn=(f,t,d,v,st)=>{const c=ac(),g=c.createGain(),o=c.createOscillator();o.type=t||'sine';o.frequency.setValueAtTime(f,c.currentTime+(st||0));g.gain.setValueAtTime(0,c.currentTime+(st||0));g.gain.linearRampToValueAtTime(v||.16,c.currentTime+(st||0)+.01);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+(st||0)+d);o.connect(g);g.connect(c.destination);o.start(c.currentTime+(st||0));o.stop(c.currentTime+(st||0)+d+.05)};
+  return{
+    flip(){tn(440,'sine',.07,.12);tn(660,'sine',.05,.1,.05)},
+    win(){tn(523,'triangle',.14,.14);tn(659,'triangle',.14,.14,.11);tn(784,'triangle',.18,.14,.22)},
+    war(){tn(180,'sawtooth',.08,.13);tn(155,'sawtooth',.08,.13,.07);tn(130,'sawtooth',.18,.1,.14)},
+    cosmic(){[523,659,784,1047].forEach((f,i)=>tn(f,'sine',.2,.12,i*.1))},
+    xp(){tn(880,'sine',.07,.1);tn(1100,'sine',.08,.1,.07)},
+    lvl(){[523,659,784,1047,1319].forEach((f,i)=>tn(f,'triangle',.22,.13,i*.08))},
+    ok(){tn(660,'sine',.1,.12);tn(880,'sine',.14,.12,.08)},
   }
+})();
+
+/* STARS */
+(function(){const sf=q('sf');for(let i=0;i<110;i++){const s=document.createElement('div');s.className='star';const sz=Math.random()*2.1+.4;s.style.cssText=`width:${sz}px;height:${sz}px;top:${Math.random()*100}%;left:${Math.random()*100}%;--d:${2+Math.random()*4}s;--dl:${-Math.random()*4}s;--lo:${.08+Math.random()*.15};--hi:${.5+Math.random()*.5}`;sf.appendChild(s)}[{c:'83,40,183',x:20,y:30},{c:'20,80,180',x:72,y:62},{c:'45,200,150',x:50,y:82}].forEach(b=>{const d=document.createElement('div');d.className='nb';d.style.cssText=`width:300px;height:200px;top:${b.y}%;left:${b.x}%;background:rgba(${b.c},.13);transform:translate(-50%,-50%)`;sf.appendChild(d)})})();
+
+/* HELPERS */
+function q(id){return document.getElementById(id)}
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));q(id).classList.add('active');if(id==='sh')rfh()}
+function hid(id,v){q(id).classList.toggle('hidden',v)}
+
+/* SETUP */
+let mode='',db2=null,rref=null,myRole='',sSuits=[],G={},sXP=0;
+function gs(m){
+  mode=m;
+  q('stl').textContent=m==='computer'?'vs Computer':m==='local'?'Pass & Play':m==='host'?'Host Game':'Join Game';
+  q('ssu').textContent=m==='computer'?'AI picks random difficulty.':m==='local'?'Two players on one device.':m==='host'?'You\'ll get a code to share.':'Enter your host\'s room code.';
+  hid('p2nl',m==='computer'||m==='host'||m==='join');
+  hid('sjc',m!=='join');hid('fbn',m!=='host'&&m!=='join');
+  if(m==='computer')q('p2n').value='Computer';
+  q('p1n').value=(q('hn').value||'Player 1').trim();
+  show('ss');
+}
+function gsuits(){const s=[];if(q('cbs').checked)s.push('spades');if(q('cbc').checked)s.push('clubs');if(q('cbh').checked)s.push('hearts');if(q('cbd').checked)s.push('diamonds');return s}
+function sstart(){
+  sSuits=gsuits();if(!sSuits.length){alert('Select at least one substep!');return}
+  const p1=q('p1n').value.trim()||'Player 1';
+  if(mode==='computer')slg(p1,'Computer',true);
+  else if(mode==='local')slg(p1,q('p2n').value.trim()||'Player 2',false);
+  else if(mode==='host')hog(p1);
+  else{const c=q('jci').value.trim();if(!c||c.length<4){alert('Enter a valid 4-digit code.');return}jog(p1,c)}
+}
+function shuf(a){a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function bdeck(suits){return shuf(DD.filter(c=>suits.includes(c.s)))}
+function slg(p1,p2,isCpu){const dk=bdeck(sSuits),mid=Math.floor(dk.length/2);sXP=0;
+  G={p1:p1,p2:p2,d1:dk.slice(0,mid),d2:dk.slice(mid),pot:[],ph:'flip',c1:null,c2:null,win:0,pend:[],sw:null,st:null,cpu:isCpu,mode:'local'};
+  rg();show('sg');setS('');setTP('Engage — flip your cards!');q('zl1').textContent=p1.toUpperCase();q('zl2').textContent=p2.toUpperCase()}
+
+/* FIREBASE */
+function ifc(){if(db2)return true;try{if(FC.apiKey==='YOUR_API_KEY')return false;firebase.initializeApp(FC);db2=firebase.database();return true}catch(e){return false}}
+function hog(mn){if(!ifc()){alert('Firebase not configured — see README.md.\nTry Pass & Play for now!');return}
+  const code=Math.floor(1000+Math.random()*9000).toString();myRole='p1';
+  const dk=bdeck(sSuits),mid=Math.floor(dk.length/2);
+  const rd={p1:mn,p2:'',d1:dk.slice(0,mid),d2:dk.slice(mid),pot:[],ph:'waiting',c1:null,c2:null,win:0,pend:[],sw:null,st:null};
+  rref=db2.ref('rooms/'+code);rref.set(rd).then(()=>{
+    q('rcd').textContent=code;q('wst').textContent='Scanning for incoming ships…';show('sw2');
+    rref.child('p2').on('value',sn=>{if(sn.val()){rref.child('p2').off();rref.update({ph:'flip'});G={...rd,p2:sn.val(),mode:'online',myRole:'p1',code};lon();rg();show('sg');setTP('Engage — flip your cards!')}})})
+}
+function canW(){if(rref)rref.remove();rref=null;show('sh')}
+function jog(mn,code){if(!ifc()){alert('Firebase not configured — see README.md.');return}
+  myRole='p2';rref=db2.ref('rooms/'+code);
+  rref.once('value').then(sn=>{if(!sn.exists()){alert('Room not found.');return}
+    const d=sn.val();rref.update({p2:mn});G={...d,p2:mn,mode:'online',myRole:'p2',code};lon();rg();show('sg');setTP('Engage — flip your cards!')})}
+function lon(){if(!rref)return;rref.on('value',sn=>{if(!sn.exists())return;const d=sn.val();G={...G,...d,d1:d.d1||[],d2:d.d2||[],pot:d.pot||[]};rg()})}
+function pon(){if(!rref)return;rref.update({p1:G.p1,p2:G.p2,d1:G.d1,d2:G.d2,pot:G.pot,ph:G.ph,c1:G.c1||null,c2:G.c2||null,win:G.win,pend:G.pend||[],sw:G.sw||null,st:G.st||null})}
+
+/* RENDER */
+function rg(){
+  q('sn1').textContent=G.p1;q('sn2').textContent=G.p2;
+  q('sc1').textContent=G.d1.length;q('sc2').textContent=G.d2.length;
+  q('sb1').classList.toggle('asc',G.win===1);q('sb2').classList.toggle('asc',G.win===2);
+  if(G.mode==='online'){q('zl1').textContent=(G.myRole==='p1'?'YOU · ':'')+G.p1.toUpperCase();q('zl2').textContent=(G.myRole==='p2'?'YOU · ':'')+G.p2.toUpperCase()}
+  else{q('zl1').textContent=G.p1.toUpperCase();q('zl2').textContent=G.p2.toUpperCase()}
+  q('z1').innerHTML=chtml(G.c1,G.win===1,false);q('z2').innerHTML=chtml(G.c2,G.win===2,G.ph==='spell');
+  const hp=G.pot&&G.pot.length>0;hid('pot',!hp);
+  if(hp){q('potlbl').textContent='War pot: '+G.pot.length+' cards';q('potchips').innerHTML=G.pot.slice(0,20).map(()=>'<div class="pc"></div>').join('')}
+  hid('pread',G.ph!=='read');hid('pspell',G.ph!=='spell');hid('cthink',true);hid('fbtn',G.ph!=='flip');
+  if(G.ph==='read'&&G.win){const wc=G.win===1?G.c1:G.c2;q('prtl').textContent=(G.win===1?G.p1:G.p2)+' — choose a word to tap & read:';bcg('cgrid',wc,srw);if(G.mode==='online'&&G.myRole!==(G.win===1?'p1':'p2')){q('cgrid').querySelectorAll('.chb').forEach(b=>b.style.pointerEvents='none');q('crb').disabled=true;setTP('Waiting for '+(G.win===1?G.p1:G.p2)+' to read…')}}
+  if(G.ph==='spell'&&G.win){const wc=G.win===1?G.c1:G.c2;q('pstl').textContent='⚔️ '+(G.win===1?G.p1:G.p2)+' — spell a word to win the pot:';bcg('sgrid',wc,ssw);if(G.mode==='online'&&G.myRole!==(G.win===1?'p1':'p2')){q('sgrid').querySelectorAll('.chb').forEach(b=>b.style.pointerEvents='none');q('csb').disabled=true;setTP('Waiting for '+(G.win===1?G.p1:G.p2)+' to spell…')}}
 }
 
-/* ── DECK UTILS ───────────────────────────────────────────────────────────*/
-function shuffle(arr) {
-  const a = [...arr];
-  for (let i = a.length-1; i > 0; i--) {
-    const j = Math.floor(Math.random()*(i+1));
-    [a[i],a[j]] = [a[j],a[i]];
-  }
-  return a;
-}
-
-function buildDeck(suits) {
-  return shuffle(DECK_DATA.filter(c => suits.includes(c.suit)));
-}
-
-/* ── LOCAL / COMPUTER GAME ────────────────────────────────────────────────*/
-function startLocalGame(p1name, p2name, isComputer) {
-  const deck = buildDeck(setupSuits);
-  const mid  = Math.floor(deck.length / 2);
-  G = {
-    p1name, p2name,
-    p1deck: deck.slice(0, mid),
-    p2deck: deck.slice(mid),
-    pot: [],
-    phase: 'flip',       // flip | read | spell | war-read | war-spell
-    card1: null, card2: null,
-    winner: 0,           // 1 or 2
-    pendingCards: [],
-    selectedWord: null,
-    spellTarget: null,
-    isComputer,
-    cosmicCount: 0,
-    mode: 'local',
-  };
-  renderGame();
-  showScreen('screen-game');
-  setStatus('');
-  setTurnPill('Both players — flip a card!');
-}
-
-/* ── ONLINE HOST ──────────────────────────────────────────────────────────*/
-function hostOnlineGame(myName) {
-  if (!initFirebase()) {
-    alert('Firebase not configured. See README.md for setup instructions.\n\nFor now, try Pass & Play mode!');
-    return;
-  }
-  const code = Math.floor(1000 + Math.random()*9000).toString();
-  myRole = 'p1';
-  const deck = buildDeck(setupSuits);
-  const mid  = Math.floor(deck.length / 2);
-  const roomData = {
-    p1name: myName, p2name: '',
-    p1deck: deck.slice(0, mid),
-    p2deck: deck.slice(mid),
-    pot: [], phase: 'waiting',
-    card1: null, card2: null,
-    winner: 0, pendingCards: [],
-    selectedWord: null, spellTarget: null,
-    suits: setupSuits
-  };
-  roomRef = db.ref('rooms/' + code);
-  roomRef.set(roomData).then(() => {
-    $('room-code-display').textContent = code;
-    $('waiting-status').textContent = 'Listening for opponent to join…';
-    showScreen('screen-waiting');
-    roomRef.child('p2name').on('value', snap => {
-      if (snap.val()) {
-        roomRef.child('p2name').off();
-        roomRef.update({phase:'flip'});
-        G = { ...roomData, p2name: snap.val(), mode:'online', myRole:'p1', code };
-        listenOnline();
-        renderGame();
-        showScreen('screen-game');
-        setTurnPill('Both players — flip a card!');
-      }
-    });
-  });
-}
-
-function cancelWaiting() {
-  if (roomRef) roomRef.remove();
-  roomRef = null;
-  showScreen('screen-home');
-}
-
-/* ── ONLINE JOIN ──────────────────────────────────────────────────────────*/
-function joinOnlineGame(myName, code) {
-  if (!initFirebase()) {
-    alert('Firebase not configured. See README.md for setup instructions.');
-    return;
-  }
-  myRole = 'p2';
-  roomRef = db.ref('rooms/' + code);
-  roomRef.once('value').then(snap => {
-    if (!snap.exists()) { alert('Room not found. Check the code and try again.'); return; }
-    const d = snap.val();
-    roomRef.update({p2name: myName});
-    G = { ...d, p2name: myName, mode:'online', myRole:'p2', code };
-    listenOnline();
-    renderGame();
-    showScreen('screen-game');
-    setTurnPill('Both players — flip a card!');
-  });
-}
-
-/* ── ONLINE SYNC ──────────────────────────────────────────────────────────*/
-function listenOnline() {
-  if (!roomRef) return;
-  roomRef.on('value', snap => {
-    if (!snap.exists()) return;
-    const d = snap.val();
-    G = { ...G, ...d };
-    G.p1deck = d.p1deck || [];
-    G.p2deck = d.p2deck || [];
-    G.pot    = d.pot || [];
-    renderGame();
-  });
-}
-
-function pushOnline() {
-  if (!roomRef) return;
-  const d = {
-    p1name: G.p1name, p2name: G.p2name,
-    p1deck: G.p1deck, p2deck: G.p2deck,
-    pot: G.pot, phase: G.phase,
-    card1: G.card1 || null, card2: G.card2 || null,
-    winner: G.winner, pendingCards: G.pendingCards || [],
-    selectedWord: G.selectedWord || null, spellTarget: G.spellTarget || null,
-  };
-  roomRef.update(d);
-}
-
-/* ── GAME RENDERING ──────────────────────────────────────────────────────*/
-function renderGame() {
-  // Scores
-  $('sb-p1name').textContent  = G.p1name;
-  $('sb-p2name').textContent  = G.p2name;
-  $('sb-p1count').textContent = G.p1deck.length;
-  $('sb-p2count').textContent = G.p2deck.length;
-  $('sb-p1').classList.toggle('winner-box', G.winner === 1);
-  $('sb-p2').classList.toggle('winner-box', G.winner === 2);
-
-  // Zone labels
-  if (G.mode === 'online') {
-    $('zone-p1-label').textContent = G.myRole==='p1' ? 'You ('+G.p1name+')' : G.p1name;
-    $('zone-p2-label').textContent = G.myRole==='p2' ? 'You ('+G.p2name+')' : G.p2name;
-  } else {
-    $('zone-p1-label').textContent = G.p1name;
-    $('zone-p2-label').textContent = G.p2name;
-  }
-
-  // Cards
-  $('zone-p1').innerHTML = cardHTML(G.card1, G.winner===1);
-  $('zone-p2').innerHTML = cardHTML(G.card2, G.winner===2);
-
-  // Pot
-  const hasPot = G.pot && G.pot.length > 0;
-  hidden('pot-area', !hasPot);
-  if (hasPot) {
-    $('pot-label').textContent = `War pot: ${G.pot.length} cards`;
-    $('pot-chips').innerHTML = G.pot.slice(0,24).map(()=>'<div class="pot-chip"></div>').join('');
-  }
-
-  // Panels
-  hidden('panel-read',  G.phase !== 'read');
-  hidden('panel-spell', G.phase !== 'spell');
-  hidden('computer-thinking', true);
-
-  // Flip button
-  const flipBtn = $('flip-btn');
-  flipBtn.textContent = 'Flip Cards';
-  flipBtn.disabled = false;
-  hidden('flip-btn', G.phase !== 'flip');
-  if (G.mode === 'online' && G.phase === 'flip') {
-    const myTurn = G.myRole === 'p1'; // either can flip; host controls
-    flipBtn.disabled = !myTurn; // only host flips for simplicity
-    if (!myTurn) setTurnPill(`Waiting for ${G.p1name} to flip…`);
-  }
-
-  // Populate panels
-  if (G.phase === 'read' && G.winner) {
-    const wcard = G.winner===1 ? G.card1 : G.card2;
-    $('panel-read-title').textContent = `${G.winner===1?G.p1name:G.p2name} — tap & read a word:`;
-    buildChoiceGrid('choice-grid', wcard, selectReadWord);
-    // In online mode, disable if it's not my turn
-    if (G.mode === 'online' && G.myRole !== (G.winner===1?'p1':'p2')) {
-      $('choice-grid').querySelectorAll('.choice-btn').forEach(b=>b.style.pointerEvents='none');
-      $('confirm-read-btn').disabled = true;
-      setTurnPill(`Waiting for ${G.winner===1?G.p1name:G.p2name} to read…`);
-    }
-  }
-
-  if (G.phase === 'spell' && G.winner) {
-    const wcard = G.winner===1 ? G.card1 : G.card2;
-    $('panel-spell-title').textContent = `${G.winner===1?G.p1name:G.p2name} — spell a word to win the pot:`;
-    buildChoiceGrid('spell-choice-grid', wcard, selectSpellWord);
-    if (G.mode === 'online' && G.myRole !== (G.winner===1?'p1':'p2')) {
-      $('spell-choice-grid').querySelectorAll('.choice-btn').forEach(b=>b.style.pointerEvents='none');
-      $('confirm-spell-btn').disabled = true;
-      setTurnPill(`Waiting for ${G.winner===1?G.p1name:G.p2name} to spell…`);
-    }
-  }
-}
-
-function cardHTML(card, isWinner) {
-  if (!card) return '<div class="card-empty">—</div>';
-  const c = SUIT_COLOR[card.suit];
-  return `<div class="play-card${isWinner?' glow-win':''}">
-    <div class="card-stripe stripe-${card.suit}"></div>
-    <div class="card-val">${card.label}</div>
-    <div class="card-suit-sym suit-sym-${card.suit}">${SUIT_SYM[card.suit]} ${SUIT_SUB[card.suit]}</div>
-    <div class="card-words">
-      <div class="card-word-row"><div class="card-word-lbl">Choice 1</div><div class="card-word-val">${card.w1}</div></div>
-      <div class="card-word-row"><div class="card-word-lbl">Choice 2</div><div class="card-word-val">${card.w2}</div></div>
-      <div class="card-word-row"><div class="card-word-lbl">Choice 3 ⭐</div><div class="card-word-val">${card.w3}</div></div>
+/* CARD HTML - real playing card look */
+function chtml(card,isW,isWar){
+  if(!card)return'<div class="ce">—</div>';
+  const red=REDS[card.s],sym=SYMS[card.s],sub=SUBS[card.s];
+  const glow=isW?(isWar?' gwar':' gw'):'';
+  const cc=red?'rc':'bc';
+  const tbcls={spades:'tsp',clubs:'tcl',hearts:'the',diamonds:'tdi'}[card.s];
+  return`<div class="pc2 ${cc}${glow}">
+    <div class="ctb ${tbcls}"></div>
+    <div class="ptl"><div class="pv">${card.l}</div><div class="ps">${sym}</div></div>
+    <div class="pbr"><div class="pv">${card.l}</div><div class="ps">${sym}</div></div>
+    <div class="ccs">${sym}</div>
+    <div class="cws">
+      <div class="cwr"><span class="cwlbl">① </span><span class="cwval">${card.w1}</span></div>
+      <div class="cwr"><span class="cwlbl">② </span><span class="cwval">${card.w2}</span></div>
+      <div class="cwr"><span class="cwcos">⭐ </span><span class="cwval">${card.w3}</span></div>
     </div>
-  </div>`;
+  </div>`
 }
 
-function buildChoiceGrid(gridId, card, onSelect) {
-  const grid = $(gridId);
-  grid.innerHTML = '';
-  const choices = [
-    {word: card.w1, num:'1', tag:'Simple',          cls:''},
-    {word: card.w2, num:'2', tag:'Intermediate',    cls:''},
-    {word: card.w3, num:'3', tag:'⭐ Cosmic Bonus', cls:'cosmic'},
-  ];
-  choices.forEach(ch => {
-    const btn = document.createElement('div');
-    btn.className = `choice-btn ${ch.cls}`;
-    btn.dataset.word = ch.word;
-    btn.innerHTML = `<div class="choice-num">${ch.num}</div>
-      <div><div class="choice-word">${ch.word}</div><div class="choice-tag">${ch.tag}</div></div>`;
-    btn.onclick = () => onSelect(ch.word, card.suit, btn, gridId);
-    grid.appendChild(btn);
-  });
+/* CHOICE GRID */
+function bcg(gid,card,onSel){
+  const g=q(gid);g.innerHTML='';
+  [{word:card.w1,num:'1',tag:'Simple · +5 XP',cls:''},{word:card.w2,num:'2',tag:'Intermediate · +10 XP',cls:''},{word:card.w3,num:'⭐',tag:'Cosmic Bonus · +20 XP',cls:'cos'}].forEach(ch=>{
+    const b=document.createElement('div');b.className='chb '+ch.cls;b.dataset.word=ch.word;
+    b.innerHTML=`<div class="chn">${ch.num}</div><div><div class="chw">${ch.word}</div><div class="cht">${ch.tag}</div></div>`;
+    b.onclick=()=>onSel(ch.word,card.s,b,gid);g.appendChild(b)})
 }
 
-/* ── PHONEME TAPPING ──────────────────────────────────────────────────────*/
-function segmentWord(raw) {
-  const word = raw.toLowerCase().replace(/-/g,'').split(' ')[0];
-  const result = [];
-  let i = 0;
-  while (i < word.length) {
-    let matched = false;
-    // welded first
-    for (const w of WELDED_ENDINGS) {
-      if (word.slice(i) === w || word.slice(i).startsWith(w) && i > 0) {
-        result.push({text: word.slice(i, i+w.length), welded: true});
-        i += w.length; matched = true; break;
-      }
-    }
-    if (matched) continue;
-    // digraphs
-    for (const d of DIGRAPHS) {
-      if (word.slice(i, i+2) === d) {
-        result.push({text: d, welded: false});
-        i += 2; matched = true; break;
-      }
-    }
-    if (matched) continue;
-    result.push({text: word[i], welded: false});
-    i++;
-  }
-  return result;
-}
+/* PHONEMES */
+function segW(raw){const word=raw.toLowerCase().replace(/-/g,'').split(' ')[0];const res=[];let i=0;
+  while(i<word.length){let m=false;
+    for(const w of WLDS){if(i>0&&word.slice(i)===w||word.slice(i).startsWith(w)&&i>0){res.push({t:word.slice(i,i+w.length),wld:true});i+=w.length;m=true;break}}
+    if(m)continue;
+    for(const d of DIGS){if(word.slice(i,i+2)===d){res.push({t:d,wld:false});i+=2;m=true;break}}
+    if(m)continue;res.push({t:word[i],wld:false});i++}return res}
+function btg(word){const ph=segW(word);if(!ph.length){hid('tguid',true);return}hid('tguid',false);
+  const row=q('phrow');row.innerHTML='';
+  ph.forEach((p,idx)=>{const s=document.createElement('span');s.className='ph'+(p.wld?' wld':'');s.textContent=p.t;
+    s.onclick=()=>{s.classList.add('tpd');setTimeout(()=>s.classList.remove('tpd'),280);SFX.flip()};
+    row.appendChild(s);
+    if(idx<ph.length-1){const sep=document.createElement('span');sep.className='phsep';sep.textContent='·';row.appendChild(sep)}})}
 
-function buildTapGuide(word) {
-  const phonemes = segmentWord(word);
-  if (!phonemes.length) { hidden('tap-guide', true); return; }
-  hidden('tap-guide', false);
-  const row = $('phoneme-row');
-  row.innerHTML = '';
-  phonemes.forEach((p, idx) => {
-    const span = document.createElement('span');
-    span.className = 'phoneme' + (p.welded ? ' welded' : '');
-    span.title = p.welded ? '3-finger welded tap' : 'Single tap';
-    span.textContent = p.text;
-    span.onclick = () => {
-      span.classList.add('tapped');
-      setTimeout(() => span.classList.remove('tapped'), 300);
-    };
-    row.appendChild(span);
-    if (idx < phonemes.length - 1) {
-      const sep = document.createElement('span');
-      sep.className = 'phoneme-sep';
-      sep.textContent = '·';
-      row.appendChild(sep);
-    }
-  });
-}
+/* WORD SELECT */
+function srw(word,suit,btn,gid){document.querySelectorAll('#'+gid+' .chb').forEach(b=>b.classList.remove('sel'));btn.classList.add('sel');G.sw=word;btg(word);q('crb').disabled=false}
+function ssw(word,suit,btn,gid){document.querySelectorAll('#'+gid+' .chb').forEach(b=>b.classList.remove('sel'));btn.classList.add('sel');G.st=word;q('spinput').value='';q('spfb').textContent='';q('spinput').className='si2';q('csb').disabled=true}
+function osp(){const v=q('spinput').value.trim().toLowerCase(),t=G.st?G.st.toLowerCase().replace(/-/g,'').split(' ')[0]:'';
+  if(!t){q('spfb').textContent='Pick a word above first.';return}
+  if(v===t){q('spinput').className='si2 ok';q('spfb').className='sfb ok';q('spfb').textContent='✓ Correct!';q('csb').disabled=false;SFX.ok()}
+  else{q('spinput').className='si2';q('spfb').textContent='';q('csb').disabled=true}}
 
-/* ── WORD SELECTION ───────────────────────────────────────────────────────*/
-function selectReadWord(word, suit, btn, gridId) {
-  document.querySelectorAll(`#${gridId} .choice-btn`).forEach(b => b.classList.remove('selected'));
-  btn.classList.add('selected');
-  G.selectedWord = word;
-  buildTapGuide(word);
-  $('confirm-read-btn').disabled = false;
-}
-
-function selectSpellWord(word, suit, btn, gridId) {
-  document.querySelectorAll(`#${gridId} .choice-btn`).forEach(b => b.classList.remove('selected'));
-  btn.classList.add('selected');
-  G.spellTarget = word;
-  $('spell-input').value = '';
-  $('spell-feedback').textContent = '';
-  $('spell-input').className = 'spell-input';
-  $('confirm-spell-btn').disabled = true;
-}
-
-function onSpellInput() {
-  const val = $('spell-input').value.trim().toLowerCase();
-  const target = G.spellTarget ? G.spellTarget.toLowerCase().replace(/-/g,'').split(' ')[0] : '';
-  if (!target) { $('spell-feedback').textContent = 'Pick a word above first.'; return; }
-  if (val === target) {
-    $('spell-input').className = 'spell-input correct';
-    $('spell-feedback').textContent = '✓ Correct!';
-    $('spell-feedback').className = 'spell-feedback ok';
-    $('confirm-spell-btn').disabled = false;
-  } else {
-    $('spell-input').className = 'spell-input';
-    $('spell-feedback').textContent = '';
-    $('confirm-spell-btn').disabled = true;
-  }
-}
-
-/* ── GAME ACTIONS ─────────────────────────────────────────────────────────*/
-function onFlipBtn() {
-  if (G.p1deck.length === 0 || G.p2deck.length === 0) { checkGameOver(); return; }
-  flipCards();
-}
-
-function flipCards() {
-  G.card1 = G.p1deck.shift();
-  G.card2 = G.p2deck.shift();
-
-  if (G.card1.value === G.card2.value) {
-    triggerWar();
-  } else {
-    G.winner = G.card1.value > G.card2.value ? 1 : 2;
-    G.pendingCards = [G.card1, G.card2];
-    G.phase = 'read';
-    G.selectedWord = null;
-    setStatus(`${G.winner===1?G.p1name:G.p2name} wins this duel!`, 's-win');
-    setTurnPill(`${G.winner===1?G.p1name:G.p2name} — tap and read`);
-    if (G.mode === 'online') pushOnline();
-    renderGame();
-
-    if (G.isComputer && G.winner === 2) {
-      computerRead();
-    }
-  }
-}
-
-function triggerWar() {
-  G.pot.push(G.card1, G.card2);
-  const count = Math.min(3, G.p1deck.length, G.p2deck.length);
-  for (let i = 0; i < count; i++) {
-    G.pot.push(G.p1deck.shift());
-    G.pot.push(G.p2deck.shift());
-  }
-  if (G.p1deck.length === 0 || G.p2deck.length === 0) {
-    setStatus('Not enough cards for WAR — splitting pot!', 's-war');
-    splitPot();
-    return;
-  }
-  G.card1 = G.p1deck.shift();
-  G.card2 = G.p2deck.shift();
-  G.pot.push(G.card1, G.card2);
-
-  if (G.card1.value === G.card2.value) {
-    renderGame();
-    setStatus('⚔️ DOUBLE WAR!', 's-war');
-    setTimeout(triggerWar, 800);
-    return;
-  }
-
-  G.winner = G.card1.value > G.card2.value ? 1 : 2;
-  G.phase = 'spell';
-  G.spellTarget = null;
-  setStatus(`⚔️ WAR! ${G.winner===1?G.p1name:G.p2name} wins — spell to claim the pot!`, 's-war');
-  setTurnPill(`${G.winner===1?G.p1name:G.p2name} — spell a word`);
-  if (G.mode === 'online') pushOnline();
-  renderGame();
-
-  if (G.isComputer && G.winner === 2) {
-    computerSpell();
-  }
-}
-
-function splitPot() {
-  const half = Math.floor(G.pot.length / 2);
-  G.p1deck.push(...shuffle(G.pot.slice(0, half)));
-  G.p2deck.push(...shuffle(G.pot.slice(half)));
-  G.pot = [];
-  G.phase = 'flip';
-  G.card1 = null; G.card2 = null; G.winner = 0;
-  if (G.mode === 'online') pushOnline();
-  renderGame();
-  setTurnPill('Both players — flip a card!');
-}
-
-function confirmRead() {
-  const wdeck = G.winner===1 ? 'p1deck' : 'p2deck';
-  G[wdeck].push(...shuffle([...G.pendingCards, ...G.pot]));
-  G.pot = [];
-  G.pendingCards = [];
-  G.phase = 'flip';
-  G.card1 = null; G.card2 = null;
-  const wasWinner = G.winner;
-  G.winner = 0;
-  if (G.mode === 'online') pushOnline();
-  renderGame();
-  setStatus(`${wasWinner===1?G.p1name:G.p2name} wins the cards!`, 's-win');
-  setTurnPill('Both players — flip a card!');
-  setTimeout(() => {
-    setStatus('');
-    checkGameOver();
-  }, 1200);
-}
-
-function confirmSpelling() {
-  const wdeck = G.winner===1 ? 'p1deck' : 'p2deck';
-  G[wdeck].push(...shuffle([...G.pot]));
-  G.pot = [];
-  G.phase = 'flip';
-  G.card1 = null; G.card2 = null;
-  const wasWinner = G.winner;
-  G.winner = 0;
-  $('spell-input').value = '';
-  if (G.mode === 'online') pushOnline();
-  renderGame();
-  setStatus(`${wasWinner===1?G.p1name:G.p2name} spells it right — wins the pot! 🏆`, 's-win');
-  setTurnPill('Both players — flip a card!');
-  setTimeout(() => {
-    setStatus('');
-    checkGameOver();
-  }, 1400);
-}
-
-/* ── COMPUTER OPPONENT ────────────────────────────────────────────────────*/
-function computerRead() {
-  hidden('computer-thinking', false);
-  const delay = 1200 + Math.random()*800;
-  setTimeout(() => {
-    hidden('computer-thinking', true);
-    // random difficulty: picks w1, w2, or w3 randomly
-    const wcard = G.card2;
-    const choices = [wcard.w1, wcard.w2, wcard.w3];
-    G.selectedWord = choices[Math.floor(Math.random() * choices.length)];
-    const isCosmicBonus = G.selectedWord === wcard.w3;
-    const msg = isCosmicBonus ? 'Computer reads ⭐ Cosmic Bonus choice!' : 'Computer reads its word.';
-    setStatus(msg, 's-info');
-    setTimeout(confirmRead, 900);
-  }, delay);
-}
-
-function computerSpell() {
-  hidden('computer-thinking', false);
-  const delay = 1500 + Math.random()*1000;
-  setTimeout(() => {
-    hidden('computer-thinking', true);
-    // random: 70% chance of getting it right, occasionally wrong choice
-    const wcard = G.card2;
-    const choices = [wcard.w1, wcard.w2, wcard.w3];
-    G.spellTarget = choices[Math.floor(Math.random() * choices.length)];
-    const success = Math.random() < 0.70;
-    if (success) {
-      setStatus('Computer spells correctly and claims the pot!', 's-info');
-      setTimeout(confirmSpelling, 900);
-    } else {
-      // Computer fails — cards go to player 1
-      setStatus('Computer misspells! You win the pot! 🎉', 's-win');
-      G.p1deck.push(...shuffle([...G.pot]));
-      G.pot = []; G.phase = 'flip'; G.card1 = null; G.card2 = null; G.winner = 0;
-      renderGame();
-      setTimeout(() => { setStatus(''); checkGameOver(); setTurnPill('Flip the next cards!'); }, 1400);
-    }
-  }, delay);
-}
-
-/* ── GAME OVER ────────────────────────────────────────────────────────────*/
-function checkGameOver() {
-  if (G.p1deck.length === 0) { endGame(2); }
-  else if (G.p2deck.length === 0) { endGame(1); }
-}
-
-function endGame(winnerNum) {
-  if (G.mode === 'online' && roomRef) { roomRef.off(); }
-  const wname = winnerNum===1 ? G.p1name : G.p2name;
-  const lname = winnerNum===1 ? G.p2name : G.p1name;
-  $('end-trophy').textContent = winnerNum===1 ? '🏆' : (G.isComputer ? '🤖' : '🏆');
-  $('end-title').textContent = `${wname} wins!`;
-  $('end-sub').textContent   = `${lname} ran out of cards`;
-  $('end-n1').textContent    = G.p1name;
-  $('end-c1').textContent    = G.p1deck.length;
-  $('end-n2').textContent    = G.p2name;
-  $('end-c2').textContent    = G.p2deck.length;
-  $('end-box-p1').classList.toggle('end-winner', winnerNum===1);
-  $('end-box-p2').classList.toggle('end-winner', winnerNum===2);
-  showScreen('screen-end');
-}
-
-function playAgain() {
-  if (mode === 'computer') startLocalGame(G.p1name, 'Computer', true);
-  else if (mode === 'local') startLocalGame(G.p1name, G.p2name, false);
-  else showScreen('screen-home');
-}
-
-function confirmQuit() {
-  if (confirm('Quit this game?')) {
-    if (G.mode === 'online' && roomRef) roomRef.off();
-    showScreen('screen-home');
-  }
-}
-
-/* ── UI HELPERS ───────────────────────────────────────────────────────────*/
-function setStatus(msg, cls='') {
-  const el = $('status-bar');
-  el.textContent = msg;
-  el.className = 'status-bar' + (cls ? ' '+cls : '');
-}
-
-function setTurnPill(txt) {
-  $('turn-pill').textContent = txt;
-}
+/* GAME ACTIONS */
+function oflip(){if(G.d1.length===0||G.d2.length===0){chkOvr();return}flip()}
+function flip(){G.c1=G.d1.shift();G.c2=G.d2.shift();SFX.flip();
+  if(G.c1.v===G.c2.v){twar()}
+  else{G.win=G.c1.v>G.c2.v?1:2;G.pend=[G.c1,G.c2];G.ph='read';G.sw=null;
+    setS((G.win===1?G.p1:G.p2)+' wins this duel!','sw');setTP((G.win===1?G.p1:G.p2)+' — tap & read a word');
+    if(G.mode==='online')pon();rg();SFX.win();if(G.cpu&&G.win===2)cpuRead()}}
+function twar(){SFX.war();G.pot.push(G.c1,G.c2);const cnt=Math.min(3,G.d1.length,G.d2.length);
+  for(let i=0;i<cnt;i++){G.pot.push(G.d1.shift());G.pot.push(G.d2.shift())}
+  if(G.d1.length===0||G.d2.length===0){setS('Not enough cards — splitting pot!','swar');splt();return}
+  G.c1=G.d1.shift();G.c2=G.d2.shift();G.pot.push(G.c1,G.c2);
+  if(G.c1.v===G.c2.v){rg();setS('⚔️ DOUBLE WAR!','swar');setTimeout(twar,900);return}
+  G.win=G.c1.v>G.c2.v?1:2;G.ph='spell';G.st=null;
+  setS('⚔️ WAR! '+(G.win===1?G.p1:G.p2)+' must spell to claim the pot!','swar');
+  setTP((G.win===1?G.p1:G.p2)+' — spell a word to win');
+  if(G.mode==='online')pon();rg();if(G.cpu&&G.win===2)cpuSpell()}
+function splt(){const h=Math.floor(G.pot.length/2);G.d1.push(...shuf(G.pot.slice(0,h)));G.d2.push(...shuf(G.pot.slice(h)));G.pot=[];G.ph='flip';G.c1=null;G.c2=null;G.win=0;if(G.mode==='online')pon();rg();setTP('Engage — flip your cards!')}
+function xpfc(word,card){if(!card)return 5;if(word===card.w3)return 20;if(word===card.w2)return 10;return 5}
+function cread(){const wc=G.win===1?G.c1:G.c2,xp=xpfc(G.sw,wc),wn=G.win===1?G.p1:G.p2,wasW=G.win;
+  G[G.win===1?'d1':'d2'].push(...shuf([...G.pend,...G.pot]));G.pot=[];G.pend=[];G.ph='flip';G.c1=null;G.c2=null;G.win=0;
+  if(G.mode==='online')pon();rg();sXP+=xp;awdXP(wasW===1?G.p1:G.p2,xp);
+  setS(wn+' wins'+(xp===20?' — ⭐ COSMIC BONUS!':'!')+(xp===20?'':''),'');
+  if(xp===20){q('stbar').className='stb sco2';SFX.cosmic()}else SFX.xp();
+  setTP('Engage — flip your cards!');setTimeout(()=>{setS('');chkOvr()},1400)}
+function cspell(){const wc=G.win===1?G.c1:G.c2,xp=xpfc(G.st,wc)+15,wn=G.win===1?G.p1:G.p2,wasW=G.win;
+  G[G.win===1?'d1':'d2'].push(...shuf([...G.pot]));G.pot=[];G.ph='flip';G.c1=null;G.c2=null;G.win=0;
+  q('spinput').value='';if(G.mode==='online')pon();rg();sXP+=xp;awdXP(wasW===1?G.p1:G.p2,xp);
+  setS(wn+' spells it — claims the pot! 🏆','sw');setTP('Engage — flip your cards!');SFX.cosmic();
+  setTimeout(()=>{setS('');chkOvr()},1400)}
+function cpuRead(){hid('cthink',false);setTimeout(()=>{hid('cthink',true);const wc=G.c2,ch=[wc.w1,wc.w2,wc.w3];G.sw=ch[Math.floor(Math.random()*3)];setS('Computer reads: "'+G.sw+'"','si');setTimeout(cread,900)},1200+Math.random()*800)}
+function cpuSpell(){hid('cthink',false);setTimeout(()=>{hid('cthink',true);const wc=G.c2,ch=[wc.w1,wc.w2,wc.w3];G.st=ch[Math.floor(Math.random()*3)];
+  if(Math.random()<0.7){setS('Computer spells correctly!','si');setTimeout(cspell,900)}
+  else{setS('Computer misspells! You win the pot! 🎉','sw');SFX.win();G.d1.push(...shuf([...G.pot]));G.pot=[];G.ph='flip';G.c1=null;G.c2=null;G.win=0;rg();setTP('Engage — flip your cards!');setTimeout(()=>{setS('');chkOvr()},1400)}},1500+Math.random()*1000)}
+function chkOvr(){if(G.d1.length===0)endG(2);else if(G.d2.length===0)endG(1)}
+function endG(wn){if(G.mode==='online'&&rref)rref.off();const wname=wn===1?G.p1:G.p2,lname=wn===1?G.p2:G.p1;
+  q('etr').textContent=wn===1?'🏆':(G.cpu?'🤖':'🏆');q('etl').textContent=wname+' wins!';q('esub').textContent=lname+' ran out of cards';
+  q('expe').textContent='Mission XP earned: +'+sXP+' XP';q('en1').textContent=G.p1;q('ec1').textContent=G.d1.length;q('en2').textContent=G.p2;q('ec2').textContent=G.d2.length;
+  q('eb1').classList.toggle('ew',wn===1);q('eb2').classList.toggle('ew',wn===2);
+  const pn=wn===1?G.p1:G.p2;const{xp}=lxp(pn),{p,c,nx,tn}=gpr(xp);q('er').textContent=c.n;q('exn').textContent=xp+' XP';q('exb').style.width=Math.min(p,100)+'%';
+  show('se');SFX.cosmic()}
+function pag(){if(mode==='computer')slg(G.p1,'Computer',true);else if(mode==='local')slg(G.p1,G.p2,false);else show('sh')}
+function cquit(){if(confirm('Abort mission?')){if(G.mode==='online'&&rref)rref.off();show('sh')}}
+function setS(m,c=''){q('stbar').textContent=m;q('stbar').className='stb'+(c?' '+c:'')}
+function setTP(t){q('tpill').textContent=t}
 </script>
 </body>
 </html>
