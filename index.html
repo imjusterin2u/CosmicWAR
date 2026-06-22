@@ -132,6 +132,7 @@ label{font-size:12px;color:var(--muted);display:block;margin-top:.75rem}
 .tile.wrs-vowel{border-color:#e08a6f}
 .tile.wrs-consonant{border-color:#e0c23a}
 .tile.wrs-welded{border-color:#5fae3f}
+.tile.wrs-suffix{border-color:#9c7a0e;background:#fffaf0;font-style:italic}
 .wrs-legend{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:.6rem}
 .sentence-choice{display:flex;align-items:flex-start;gap:12px;background:rgba(255,255,255,.06);border:2px solid rgba(124,111,247,.35);border-radius:12px;padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:transform .12s,background .15s,border-color .15s}
 .sentence-choice:hover{background:rgba(124,111,247,.14);border-color:var(--purple);transform:translateY(-1px)}
@@ -145,6 +146,7 @@ label{font-size:12px;color:var(--muted);display:block;margin-top:.75rem}
 .legend-chip.wrs-vowel{border-color:#e08a6f}
 .legend-chip.wrs-consonant{border-color:#e0c23a}
 .legend-chip.wrs-welded{border-color:#5fae3f}
+.legend-chip.wrs-suffix{border-color:#9c7a0e;font-style:italic}
 .tb-base-label{text-align:center;font-size:12px;font-weight:600;color:var(--gold);margin-bottom:.5rem;background:rgba(245,200,66,.1);border:1px solid rgba(245,200,66,.3);border-radius:var(--rsm);padding:6px 10px}
 .tile-tray{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;min-height:50px;padding:.5rem}
 .tb-actions{display:flex;gap:8px;margin-top:.85rem}
@@ -178,8 +180,8 @@ label{font-size:12px;color:var(--muted);display:block;margin-top:.75rem}
 .lutl{font-size:12px;letter-spacing:3px;color:var(--muted);margin:.5rem 0 .25rem}
 .lurn{font-size:22px;font-weight:800;color:var(--gold);text-shadow:0 0 20px var(--gold-glow)}
 .roster-link{background:none;border:none;color:var(--purple);font-size:11px;cursor:pointer;text-decoration:underline;padding:4px 0}
-select#hn{width:100%;padding:10px 14px;border-radius:var(--rsm);border:1px solid rgba(124,111,247,.3);background:rgba(255,255,255,.05);color:var(--text);font-size:15px;margin-top:.35rem;flex:1}
-select#hn:focus{outline:none;border-color:var(--purple);box-shadow:0 0 10px var(--purple-glow)}
+select#hn,select#voiceSelHome{width:100%;padding:10px 14px;border-radius:var(--rsm);border:1px solid rgba(124,111,247,.3);background:rgba(255,255,255,.05);color:var(--text);font-size:15px;margin-top:.35rem;flex:1}
+select#hn:focus,select#voiceSelHome:focus{outline:none;border-color:var(--purple);box-shadow:0 0 10px var(--purple-glow)}
 .roster-overlay{position:fixed;inset:0;z-index:997;background:rgba(7,8,15,.9);display:none;align-items:center;justify-content:center;padding:1.5rem}
 .roster-overlay.show{display:flex}
 .roster-box{background:rgba(11,13,26,.97);border:1px solid rgba(124,111,247,.35);border-radius:var(--radius);padding:1.25rem;max-width:380px;width:100%;max-height:80vh;display:flex;flex-direction:column}
@@ -294,6 +296,10 @@ select#hn:focus{outline:none;border-color:var(--purple);box-shadow:0 0 10px var(
   <div class="hnr">
     <span class="hnlbl">Pilot:</span>
     <select id="hn" onchange="rfh()"><option value="">— Select your name —</option></select>
+  </div>
+  <div class="hnr">
+    <span class="hnlbl">🔊 Voice:</span>
+    <select id="voiceSelHome"></select>
   </div>
   <div style="text-align:right;padding:0 1.25rem">
     <button class="roster-link" onclick="openTeacherGate()">🔒 Teacher Tools</button>
@@ -418,6 +424,7 @@ select#hn:focus{outline:none;border-color:var(--purple);box-shadow:0 0 10px var(
       <span class="legend-chip wrs-vowel">vowel</span>
       <span class="legend-chip wrs-consonant">consonant / blend</span>
       <span class="legend-chip wrs-welded">welded / exception</span>
+      <span class="legend-chip wrs-suffix">suffix</span>
     </div>
     <div class="tb-base-label hidden" id="tbBaseLabel">⚡ This is a Latin base — pull the matching tile</div>
     <div class="answer-row" id="answerRow"></div>
@@ -474,6 +481,16 @@ const REDS={hearts:true,diamonds:true};
 const LATIN_BASES=['rupt','fess','sent','pel','mit','pend','press','sist','vent','dict','duct','struct','ject','spect','tract','fect','rect','vict'];
 function isLatinBaseWord(word){ return LATIN_BASES.includes(cleanWordForCheck(word)); }
 function cleanWordForCheck(w){ return w.replace(/-/g,'').split(' ')[0].toLowerCase(); }
+
+/* Detect if the dictated word is a base-word + suffix pair (per the rulebook's Choice 1 -> Choice 2 design),
+   e.g. bank -> banks, brush -> brushes. Returns the suffix string ('s' or 'es') or null if no suffix applies. */
+function detectSuffix(targetWord,card){
+  if(!card) return null;
+  const base=cleanWordForCheck(card.w1);
+  if(targetWord===base+'s') return 's';
+  if(targetWord===base+'es') return 'es';
+  return null;
+}
 const VOWELS=['a','e','i','o','u'];
 const WELDED_CHUNKS=['ang','ank','ing','ink','ong','onk','ung','unk','all','ild','ind','old','olt','ost','am','an'];
 const DIGRAPH_BLEND_CHUNKS=['wh','ch','sh','th','ck','qu'];
@@ -481,6 +498,7 @@ const DIGRAPH_BLEND_CHUNKS=['wh','ch','sh','th','ck','qu'];
 const ALL_CHUNKS=[...WELDED_CHUNKS,...DIGRAPH_BLEND_CHUNKS].sort((a,b)=>b.length-a.length);
 
 function tileCategory(chunk){
+  if(chunk.startsWith('-')) return 'suffix';
   if(WELDED_CHUNKS.includes(chunk)) return 'welded';
   if(DIGRAPH_BLEND_CHUNKS.includes(chunk)) return 'consonant';
   if(chunk.length===1 && VOWELS.includes(chunk)) return 'vowel';
@@ -489,18 +507,21 @@ function tileCategory(chunk){
 
 /* Break a word into the Wilson-style tiles a student would actually pull:
    tries welded/digraph chunks first (longest match), falls back to single letters. */
-function segmentToWRSTiles(word){
+function segmentToWRSTiles(word,suffix){
   const w=word.toLowerCase();
+  const baseLen=suffix?w.length-suffix.length:w.length;
+  const base=w.slice(0,baseLen);
   const tiles=[];
   let i=0;
-  while(i<w.length){
+  while(i<base.length){
     let matched=null;
     for(const chunk of ALL_CHUNKS){
-      if(w.slice(i,i+chunk.length)===chunk){ matched=chunk; break; }
+      if(base.slice(i,i+chunk.length)===chunk){ matched=chunk; break; }
     }
     if(matched){ tiles.push(matched); i+=matched.length; }
-    else{ tiles.push(w[i]); i+=1; }
+    else{ tiles.push(base[i]); i+=1; }
   }
+  if(suffix){ tiles.push('-'+suffix); }
   return tiles;
 }
 
@@ -510,11 +531,13 @@ function generateDistractorTiles(targetTiles,plainLettersOnly){
   const distractorsByCategory=plainLettersOnly?{
     vowel:['a','e','i','o','u'],
     consonant:['b','c','d','f','g','h','j','k','l','m','n','p','q','r','s','t','v','w','x','y','z'],
-    welded:['b','c','d','f','g','h','j','k','l','m','n','p','q','r','s','t','v','w','x','y','z']
+    welded:['b','c','d','f','g','h','j','k','l','m','n','p','q','r','s','t','v','w','x','y','z'],
+    suffix:['-s','-es']
   }:{
     vowel:['a','e','i','o','u'],
     consonant:['b','c','d','f','g','h','j','k','l','m','n','p','r','s','t','v','w','y','z','sh','ch','th','wh','ck'],
-    welded:['ang','ank','ing','ink','ong','onk','ung','unk','all','ild','ind','old','olt','ost']
+    welded:['ang','ank','ing','ink','ong','onk','ung','unk','all','ild','ind','old','olt','ost'],
+    suffix:['-s','-es']
   };
   const targetSet=new Set(targetTiles);
   const numDistract=Math.min(3,Math.max(2,Math.ceil(targetTiles.length/2)));
@@ -938,13 +961,26 @@ const SFX=(()=>{
 let availableVoices=[];
 function loadVoices(){
   availableVoices=window.speechSynthesis?window.speechSynthesis.getVoices():[];
-  const sel=q('voiceSel');
-  if(!sel)return;
-  sel.innerHTML='';
   const enVoices=availableVoices.filter(v=>v.lang&&v.lang.startsWith('en'));
   const list=enVoices.length?enVoices:availableVoices;
+  const saved=localStorage.getItem('cwVoiceName');
+  populateVoiceSelect('voiceSel',list,saved);
+  populateVoiceSelect('voiceSelHome',list,saved);
+}
+function populateVoiceSelect(id,list,saved){
+  const sel=q(id);
+  if(!sel)return;
+  sel.innerHTML='';
   list.forEach((v)=>{const opt=document.createElement('option');opt.value=v.name;opt.textContent=v.name+' ('+v.lang+')';sel.appendChild(opt)});
   if(!list.length){const opt=document.createElement('option');opt.textContent='Default voice';sel.appendChild(opt)}
+  if(saved && list.some(v=>v.name===saved)){ sel.value=saved; }
+  sel.onchange=()=>{
+    localStorage.setItem('cwVoiceName',sel.value);
+    // Keep the other dropdown in sync
+    const otherId = id==='voiceSel' ? 'voiceSelHome' : 'voiceSel';
+    const other=q(otherId);
+    if(other) other.value=sel.value;
+  };
 }
 if('speechSynthesis' in window){
   loadVoices();
@@ -956,7 +992,7 @@ function speakWord(word){
   window.speechSynthesis.cancel();
   const u=new SpeechSynthesisUtterance(clean);
   u.rate=0.78; u.pitch=1.0;
-  const selName=q('voiceSel')?q('voiceSel').value:null;
+  const selName=localStorage.getItem('cwVoiceName');
   if(selName){const v=availableVoices.find(v=>v.name===selName);if(v)u.voice=v}
   const btn=q('speakBtn');
   if(btn)btn.classList.add('speaking');
@@ -1124,7 +1160,8 @@ function buildTileBoard(word){
     hid('tbBaseLabel',true);
   }
 
-  const targetTiles=segmentToWRSTiles(target);
+  const suffix=detectSuffix(target,G.curWordSrc);
+  const targetTiles=segmentToWRSTiles(target,suffix);
   const distractorTiles=generateDistractorTiles(targetTiles);
   const allTiles=shuf([...targetTiles,...distractorTiles]);
 
@@ -1235,7 +1272,7 @@ function clearAnswer(){
   renderTileBoard();
 }
 function getCurrentAnswer(){
-  return tileState.placed.map(idx=>idx===null?'':tileState.letters[idx]).join('');
+  return tileState.placed.map(idx=>idx===null?'':tileState.letters[idx]).join('').replace(/-/g,'');
 }
 
 function submitSpelling(){
