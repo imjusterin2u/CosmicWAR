@@ -230,8 +230,9 @@ select#hn:focus{outline:none;border-color:var(--purple);box-shadow:0 0 10px var(
     <input type="text" id="pinInput" inputmode="numeric" maxlength="6" placeholder="••••" style="text-align:center;font-size:22px;letter-spacing:6px" onkeydown="if(event.key==='Enter')submitPin()"/>
     <div class="roster-status" id="pinError" style="color:var(--coral);min-height:16px"></div>
     <div class="br"><button class="btn bp" onclick="submitPin()">Unlock</button></div>
-    <div style="text-align:center;margin-top:.6rem">
+    <div style="text-align:center;margin-top:.6rem;display:flex;justify-content:center;gap:14px">
       <button class="roster-link" id="pinSetupLink" onclick="showPinSetup()">First time? Set a teacher PIN</button>
+      <button class="roster-link" id="pinForgotLink" onclick="forgotPin()">Forgot PIN?</button>
     </div>
   </div>
 </div>
@@ -429,6 +430,7 @@ select#hn:focus{outline:none;border-color:var(--purple);box-shadow:0 0 10px var(
 </div>
 
 <script>
+let mode='',db2=null,rref=null,myRole='',sSuits=[],G={},sXP=0,pinUnlocked=false;
 const FC={apiKey:"AIzaSyD4WNLmKrdL1pQh_YCuCCEDR7joatqoG_c",authDomain:"cosmic-word-war.firebaseapp.com",databaseURL:"https://cosmic-word-war-default-rtdb.firebaseio.com",projectId:"cosmic-word-war",storageBucket:"cosmic-word-war.firebasestorage.app",messagingSenderId:"318639323925",appId:"1:318639323925:web:4f768cbb4ffe867016471c"};
 
 const DD=[
@@ -659,7 +661,6 @@ function awdXP(name,amt){
 
 /* ROSTER MANAGEMENT MODAL */
 /* TEACHER PIN GATE */
-let pinUnlocked=false;
 function getStoredPin(cb){
   ensureFirebaseRosterReady(useFB=>{
     if(useFB){
@@ -699,14 +700,27 @@ function openTeacherGate(){
 }
 function showPinModal(pin){
   if(!pin){
-    q('pinHelpText').textContent='No teacher PIN is set yet. Choose a 4-6 digit PIN to protect the roster and reports.';
+    q('pinHelpText').textContent='No teacher PIN is set yet. Type a 4-6 digit PIN below and tap Unlock to set it.';
     hid('pinSetupLink',true);
+    hid('pinForgotLink',true);
   } else {
     q('pinHelpText').textContent='Enter the teacher PIN to access the roster and reports.';
-    hid('pinSetupLink',false);
+    hid('pinSetupLink',true);
+    hid('pinForgotLink',false);
   }
   q('pinOverlay').classList.add('show');
   setTimeout(()=>q('pinInput').focus(),100);
+}
+function forgotPin(){
+  if(!confirm('Reset the teacher PIN? You will be asked to set a new one immediately. Anyone with this link could do this, so only use it if you\'ve genuinely forgotten your PIN.'))return;
+  setStoredPin('',()=>{
+    ensureFirebaseRosterReady(useFB=>{
+      if(useFB){ db2.ref('settings/teacherPin').remove().catch(()=>{}); }
+    });
+    localStorage.removeItem('cwTeacherPin');
+    q('pinInput').value=''; q('pinError').textContent='PIN reset — set a new one below.';
+    showPinModal(null);
+  });
 }
 function closePinGate(){ q('pinOverlay').classList.remove('show'); }
 function showPinSetup(){
@@ -870,7 +884,6 @@ function q(id){return document.getElementById(id)}
 function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));q(id).classList.add('active');if(id==='sh')rfh()}
 function hid(id,v){q(id).classList.toggle('hidden',v)}
 
-let mode='',db2=null,rref=null,myRole='',sSuits=[],G={},sXP=0;
 function gs(m){
   if(!q('hn').value){ alert('Please select your name first! If you\'re not on the list, ask your teacher to add you via "Manage student roster."'); return; }
   mode=m;
