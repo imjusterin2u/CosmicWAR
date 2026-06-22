@@ -122,6 +122,36 @@ At random moments during play (roughly every 15–35 seconds, anytime — even m
 
 In **Pass & Play** mode, whichever physical player taps the popup first plays the challenge. (Online co-op currently treats Player 1 as the default claimer when triggered — see note in Customizing below if you want to adjust this.)
 
+### 🎓 Student Roster & Persistent Rank
+Students no longer type their name freehand. From the home screen, tap **⚙️ Manage student roster** to add each student once — their name then appears in a dropdown for them to select before playing.
+
+- **With Firebase configured**: XP and rank are stored centrally and follow the student across *any* device — a Chromebook today, an iPad tomorrow, same rank either way.
+- **Without Firebase configured**: the roster and XP fall back to that browser's local storage only (useful for testing, but won't follow a student across devices).
+
+Only Player 1 (the "Pilot" selected on the home screen) currently has roster-backed XP; the second local player in Pass & Play still uses free-text and won't have persistent rank tracking yet.
+
+To remove a student or fix a typo, open the roster manager and tap **Remove** next to their name — note this also clears their saved XP.
+
+### 🔒 Teacher PIN
+Students should never see the roster manager or reports — they're locked behind a PIN. From the home screen, the **🔒 Teacher Tools** link prompts for a 4–6 digit PIN before showing anything.
+
+- **First use**: no PIN exists yet, so the prompt lets you set one on the spot
+- **After that**: the same prompt asks for the PIN you set; entering it correctly unlocks the roster and reports for the rest of that browser session
+- The PIN is stored alongside your other Firebase data (`settings/teacherPin`) so it's the same PIN on every device, with local-storage fallback if Firebase isn't configured
+
+Students can always reach **vs Computer**, **Pass & Play**, **Host**, and **Join** directly from the home screen with no PIN required — only the teacher-facing tools are gated.
+
+### 📊 Missed-Word Reports (for lesson prep)
+Every roster row has a **📊 Report** button. Tapping it opens a breakdown of what that student has gotten wrong, across three tabs:
+
+- **Card Words** — spelling words from the deck, tagged with which substep/suit they came from (e.g. *"2.3 (Exceptions)"*)
+- **Power Words** — high-frequency words missed during the spelling step of Power Word challenges
+- **Sentence Use** — words the student *spelled correctly* but then used in the wrong sentence during the Power Word challenge's second step — useful for spotting kids who can decode/encode a word but don't yet understand its meaning or usage
+
+All three are sorted by miss count, most-missed first. A word is never removed from the report automatically — the count just keeps growing each time it's missed again, so a one-off slip looks very different from a recurring pattern.
+
+This data lives in the same place as XP — Firebase if configured, local storage as a fallback — so it follows the student the same way their rank does.
+
 ### Suits → Substeps
 | Suit | Substep | Focus |
 |---|---|---|
