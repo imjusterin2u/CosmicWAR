@@ -90,6 +90,11 @@ Replace each value with the ones from your Firebase project. Save the file.
   - **Incorrect** → the opponent gets a **steal chance**: same word, same tile board. If they spell it correctly, they steal the entire pot. If they also miss it, the cards return to the bottom of both players' stacks (nobody collects)
 - If cards are **equal value → WAR**: each player places 3 cards face-down and flips a 4th; the new winner goes through the same dictation → spell → steal sequence for the full pot
 
+### Guaranteed early WAR
+With all four suits in play, a natural tie only happens on roughly 6% of flips — so by pure chance, more than half of all games would go their first several rounds without a single WAR. To make sure the WAR mechanic actually gets used early in every session, the deck is automatically arranged (right after dealing, before the first flip) so that **a WAR is guaranteed within the first 5 rounds**, unless one happens naturally even sooner. The rest of the deck stays fully random — only the minimum necessary swap happens to make this guarantee work, and the swap is invisible to players.
+
+If you select **only one suit** in Setup, this guarantee can't apply — with just 13 cards and each value appearing exactly once, a tie is mathematically impossible regardless of shuffling. Selecting two or more suits restores the guarantee.
+
 ### Word selection
 Each card has three possible words (the computer picks one at random per round):
 
