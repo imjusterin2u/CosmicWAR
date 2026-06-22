@@ -156,6 +156,51 @@ label{font-size:12px;color:var(--muted);display:block;margin-top:.75rem}
 .tb-feedback.bad{color:var(--coral)}
 .tb-feedback.good{color:var(--teal)}
 .steal-banner{margin:.45rem 1rem;background:rgba(255,107,74,.1);border:1.5px solid var(--coral);border-radius:var(--radius);padding:.8rem 1rem;text-align:center;font-size:13px;font-weight:700;color:var(--coral)}
+
+/* WAR CEREMONY */
+.war-ceremony{position:fixed;inset:0;z-index:600;background:rgba(5,3,10,.94);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.2rem;padding:1.5rem;backdrop-filter:blur(6px)}
+.war-ceremony-title{font-size:34px;font-weight:900;color:var(--coral);text-shadow:0 0 30px rgba(255,107,74,.7);letter-spacing:3px;animation:warTitlePulse 1s ease-in-out infinite}
+@keyframes warTitlePulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.war-pile-row{display:flex;gap:40px;align-items:flex-end;justify-content:center}
+@media (max-width:380px){
+  .war-pile-row{gap:20px}
+  .war-ceremony-title{font-size:28px}
+  .war-flip-card{width:130px;height:175px}
+}
+.war-pile-col{display:flex;flex-direction:column;align-items:center;gap:8px}
+.war-pile-label{font-size:12px;font-weight:700;color:var(--text);letter-spacing:.5px}
+.war-pile-stack{position:relative;width:90px;height:140px}
+.war-pile-card{
+  position:absolute;top:0;left:0;width:78px;height:108px;border-radius:8px;
+  background:linear-gradient(135deg,#0b0d1a,#1a1240,#0b0d1a);
+  border:1.5px solid rgba(124,111,247,.55);
+  box-shadow:0 4px 14px rgba(0,0,0,.6);
+  opacity:0;transform:translateY(-40px) scale(.7) rotate(-8deg);
+  transition:opacity .35s ease,transform .35s ease;
+  display:flex;align-items:center;justify-content:center;font-size:18px;
+}
+.war-pile-card.dropped{opacity:1;transform:translateY(0) scale(1) rotate(0deg)}
+.war-pile-card.dropped:nth-child(2){transform:translateY(0) translateX(4px) scale(1) rotate(3deg)}
+.war-pile-card.dropped:nth-child(3){transform:translateY(0) translateX(8px) scale(1) rotate(-2deg)}
+.war-ceremony-status{font-size:15px;font-weight:600;color:var(--muted);text-align:center;min-height:22px}
+.war-flip-zone{display:flex;flex-direction:column;align-items:center;gap:.5rem}
+.war-flip-card{
+  width:150px;height:200px;border-radius:14px;
+  background:linear-gradient(135deg,#1a1240,#2a1c5e,#0b0d1a);
+  border:3px solid var(--gold);
+  box-shadow:0 0 30px var(--gold-glow),0 8px 24px rgba(0,0,0,.6);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+  cursor:pointer;animation:warFlipPulse 1.1s ease-in-out infinite;
+  transition:transform .15s;
+}
+.war-flip-card:hover{transform:scale(1.04)}
+.war-flip-card:active{transform:scale(.95)}
+@keyframes warFlipPulse{0%,100%{box-shadow:0 0 30px var(--gold-glow),0 8px 24px rgba(0,0,0,.6)}50%{box-shadow:0 0 50px var(--gold-glow),0 8px 30px rgba(0,0,0,.7)}}
+.war-flip-icon{font-size:36px}
+.war-flip-text{font-size:12px;font-weight:800;color:var(--gold);text-align:center;letter-spacing:1px;line-height:1.4}
+.war-reveal-cards{display:flex;gap:24px;align-items:center;justify-content:center}
+.war-reveal-card-zone{display:flex;flex-direction:column;align-items:center;gap:6px}
+.war-reveal-name{font-size:12px;font-weight:700;color:var(--text)}
 .pw-popup{position:fixed;z-index:500;top:30%;left:50%;transform:translate(-50%,-50%);
   width:120px;height:120px;border-radius:50%;border:3px solid var(--gold);
   background:radial-gradient(circle,rgba(245,200,66,.35),rgba(245,200,66,.12));
@@ -377,6 +422,27 @@ select#hn:focus,select#voiceSelHome:focus{outline:none;border-color:var(--purple
   </div>
 
   <div class="steal-banner hidden" id="stealBanner">⚡ STEAL CHANCE! ⚡</div>
+
+  <div class="war-ceremony hidden" id="warCeremony">
+    <div class="war-ceremony-title">⚔️ WAR! ⚔️</div>
+    <div class="war-pile-row">
+      <div class="war-pile-col">
+        <div class="war-pile-label" id="warP1Label">PILOT 1</div>
+        <div class="war-pile-stack" id="warP1Pile"></div>
+      </div>
+      <div class="war-pile-col">
+        <div class="war-pile-label" id="warP2Label">PILOT 2</div>
+        <div class="war-pile-stack" id="warP2Pile"></div>
+      </div>
+    </div>
+    <div class="war-ceremony-status" id="warStatus">Laying down 3 cards each…</div>
+    <div class="war-flip-zone hidden" id="warFlipZone">
+      <button class="war-flip-card" id="warFlipBtn" onclick="warRevealFinalCard()">
+        <span class="war-flip-icon">⭐</span>
+        <span class="war-flip-text">TAP TO REVEAL<br>THE DECIDING CARD</span>
+      </button>
+    </div>
+  </div>
 
   <button class="pw-popup hidden" id="pwPopup" onclick="claimPowerWord()">
     <span class="pw-popup-icon">⚡</span>
@@ -1161,18 +1227,69 @@ function flip(){
   }
 }
 function twar(){
-  SFX.war();G.pot.push(G.c1,G.c2);const cnt=Math.min(3,G.d1.length,G.d2.length);
-  for(let i=0;i<cnt;i++){G.pot.push(G.d1.shift());G.pot.push(G.d2.shift())}
+  SFX.war();
+  G.pot.push(G.c1,G.c2);
+  const cnt=Math.min(3,G.d1.length,G.d2.length);
+  for(let i=0;i<cnt;i++){
+    G.pot.push(G.d1.shift(),G.d2.shift());
+  }
   if(G.d1.length===0||G.d2.length===0){setS('Not enough cards — splitting pot!','swar');splt();return}
   G.ph='warflip';rg();
+  runWarCeremony(cnt);
+}
+function runWarCeremony(facedownCount){
+  hid('warCeremony',false);
+  q('warP1Label').textContent=G.p1.toUpperCase();
+  q('warP2Label').textContent=G.p2.toUpperCase();
+  q('warP1Pile').innerHTML='';
+  q('warP2Pile').innerHTML='';
+  hid('warFlipZone',true);
+  q('warStatus').textContent='Laying down '+facedownCount+' card'+(facedownCount===1?'':'s')+' each…';
+
+  let dropped=0;
+  function dropNext(){
+    if(dropped>=facedownCount){
+      q('warStatus').textContent='Now flip the deciding card!';
+      hid('warFlipZone',false);
+      return;
+    }
+    const c1=document.createElement('div'); c1.className='war-pile-card'; c1.style.zIndex=dropped;
+    const c2=document.createElement('div'); c2.className='war-pile-card'; c2.style.zIndex=dropped;
+    q('warP1Pile').appendChild(c1);
+    q('warP2Pile').appendChild(c2);
+    SFX.flip();
+    requestAnimationFrame(()=>{ c1.classList.add('dropped'); c2.classList.add('dropped'); });
+    dropped++;
+    setTimeout(dropNext,420);
+  }
+  setTimeout(dropNext,400);
+}
+function warRevealFinalCard(){
+  q('warFlipBtn').disabled=true;
+  q('warStatus').textContent='Revealing…';
+  SFX.flip();
   setTimeout(()=>{
     G.c1=G.d1.shift();G.c2=G.d2.shift();G.pot.push(G.c1,G.c2);
-    if(G.c1.v===G.c2.v){rg();setS('⚔️ DOUBLE WAR!','swar');setTimeout(twar,900);return}
+    if(G.c1.v===G.c2.v){
+      q('warStatus').textContent='⚔️ DOUBLE WAR! Going again…';
+      SFX.war();
+      setTimeout(()=>{
+        hid('warCeremony',true);
+        const cnt=Math.min(3,G.d1.length,G.d2.length);
+        if(G.d1.length===0||G.d2.length===0){setS('Not enough cards — splitting pot!','swar');splt();return}
+        for(let i=0;i<cnt;i++){ G.pot.push(G.d1.shift(),G.d2.shift()); }
+        runWarCeremony(cnt);
+        q('warFlipBtn').disabled=false;
+      },1100);
+      return;
+    }
     G.win=G.c1.v>G.c2.v?1:2;G.pend=[];
+    hid('warCeremony',true);
+    q('warFlipBtn').disabled=false;
     setS('⚔️ WAR! '+(G.win===1?G.p1:G.p2)+' must spell to win the pot!','swar');
     rg();
     startDictation();
-  },650);
+  },550);
 }
 function splt(){const h=Math.floor(G.pot.length/2);G.d1.push(...shuf(G.pot.slice(0,h)));G.d2.push(...shuf(G.pot.slice(h)));G.pot=[];G.ph='flip';G.c1=null;G.c2=null;G.win=0;if(G.mode==='online')pon();rg();setTP('Engage — flip your cards!')}
 
@@ -1659,14 +1776,14 @@ function closePWChallenge(){
   schedulePowerWord();
 }
 
-function endG(wn){clearPowerWordTimer();hid('pwPopup',true);hid('pwPanel',true);if(G.mode==='online'&&rref)rref.off();const wname=wn===1?G.p1:G.p2,lname=wn===1?G.p2:G.p1;
+function endG(wn){clearPowerWordTimer();hid('pwPopup',true);hid('pwPanel',true);hid('warCeremony',true);if(G.mode==='online'&&rref)rref.off();const wname=wn===1?G.p1:G.p2,lname=wn===1?G.p2:G.p1;
   q('etr').textContent=wn===1?'🏆':(G.cpu?'🤖':'🏆');q('etl').textContent=wname+' wins!';q('esub').textContent=lname+' ran out of cards';
   q('expe').textContent='Mission XP earned: +'+sXP+' XP';q('en1').textContent=G.p1;q('ec1').textContent=G.d1.length;q('en2b').textContent=G.p2;q('ec2').textContent=G.d2.length;
   q('eb1').classList.toggle('ew',wn===1);q('eb2').classList.toggle('ew',wn===2);
   const pn=wn===1?G.p1:G.p2;const xp=getXP(pn),{p,c,nx,tn}=gpr(xp);q('er').textContent=c.n;q('exn').textContent=xp+' XP';q('exb').style.width=Math.min(p,100)+'%';
   show('se');SFX.cosmic()}
 function pag(){if(mode==='computer')slg(G.p1,'Computer',true);else if(mode==='local')slg(G.p1,G.p2,false);else show('sh')}
-function cquit(){if(confirm('Abort mission?')){clearPowerWordTimer();hid('pwPopup',true);hid('pwPanel',true);if(G.mode==='online'&&rref)rref.off();show('sh')}}
+function cquit(){if(confirm('Abort mission?')){clearPowerWordTimer();hid('pwPopup',true);hid('pwPanel',true);hid('warCeremony',true);if(G.mode==='online'&&rref)rref.off();show('sh')}}
 function setS(m,c=''){q('stbar').textContent=m;q('stbar').className='stb'+(c?' '+c:'')}
 function setTP(t){q('tpill').textContent=t}
 </script>
