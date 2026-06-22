@@ -123,11 +123,21 @@ label{font-size:12px;color:var(--muted);display:block;margin-top:.75rem}
 .answer-row.correct{border-color:var(--teal);border-style:solid;background:rgba(45,224,165,.08)}
 .answer-row.wrong{animation:shakeRow .4s}
 @keyframes shakeRow{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}
-.answer-slot{width:38px;height:46px;border-radius:6px;border:1.5px dashed rgba(124,111,247,.25);flex-shrink:0}
-.tile{width:38px;height:46px;border-radius:6px;background:linear-gradient(135deg,#fdfbf3,#f3edd9);border:1.5px solid #d4c9a0;display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:800;color:#3a2f1a;cursor:pointer;user-select:none;box-shadow:0 2px 6px rgba(0,0,0,.3);transition:transform .12s,box-shadow .12s;flex-shrink:0;font-family:Georgia,serif}
+.answer-slot{width:44px;height:46px;border-radius:6px;border:1.5px dashed rgba(124,111,247,.25);flex-shrink:0}
+.tile{min-width:38px;height:46px;padding:0 8px;border-radius:6px;background:linear-gradient(135deg,#fdfbf3,#f3edd9);border:1.5px solid #d4c9a0;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;color:#3a2f1a;cursor:pointer;user-select:none;box-shadow:0 2px 6px rgba(0,0,0,.3);transition:transform .12s,box-shadow .12s;flex-shrink:0;font-family:Georgia,serif;text-transform:lowercase}
 .tile:hover{transform:translateY(-2px);box-shadow:0 4px 10px rgba(0,0,0,.4)}
-.tile.placed{background:linear-gradient(135deg,#e9e4ff,#d4cdf7);border-color:var(--purple)}
-.tile.correct-tile{background:linear-gradient(135deg,#d4f7e9,#b8eed1);border-color:var(--teal);color:#0b6e44}
+.tile.placed{box-shadow:0 2px 8px rgba(0,0,0,.35),0 0 0 2px var(--purple)}
+.tile.correct-tile{box-shadow:0 2px 8px rgba(0,0,0,.35),0 0 0 2px var(--teal)}
+/* WRS color categories — matches the physical Wilson tile board */
+.tile.wrs-vowel{background:linear-gradient(135deg,#f6dcd4,#eec3b6);border-color:#d99c87;color:#5a2c1c}
+.tile.wrs-consonant{background:linear-gradient(135deg,#fdf3c8,#f7e3a0);border-color:#d9bd5a;color:#5a4509}
+.tile.wrs-welded{background:linear-gradient(135deg,#dcecc8,#c2dba0);border-color:#9bbf6a;color:#33480f}
+.wrs-legend{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:.6rem}
+.legend-chip{font-size:9.5px;font-weight:600;padding:3px 8px;border-radius:10px;color:#222}
+.legend-chip.wrs-vowel{background:#eec3b6}
+.legend-chip.wrs-consonant{background:#f7e3a0}
+.legend-chip.wrs-welded{background:#c2dba0}
+.tb-base-label{text-align:center;font-size:12px;font-weight:600;color:var(--gold);margin-bottom:.5rem;background:rgba(245,200,66,.1);border:1px solid rgba(245,200,66,.3);border-radius:var(--rsm);padding:6px 10px}
 .tile-tray{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;min-height:50px;padding:.5rem}
 .tb-actions{display:flex;gap:8px;margin-top:.85rem}
 .tb-actions .btn{flex:1}
@@ -389,10 +399,19 @@ select#hn:focus{outline:none;border-color:var(--purple);box-shadow:0 0 10px var(
     <div class="dict-replay">
       <button class="btn" style="width:auto;padding:8px 18px;font-size:12px" onclick="speakCurrentWord()">🔁 Replay word</button>
     </div>
+    <div class="br" style="margin-top:.85rem">
+      <button class="btn bt" onclick="goToSpelling()">I'm ready to spell it ✓</button>
+    </div>
   </div>
 
   <div class="tile-board hidden" id="tileBoard">
     <div class="tb-title" id="tbTitle">Spell the word you heard:</div>
+    <div class="wrs-legend" id="wrsLegend">
+      <span class="legend-chip wrs-vowel">vowel</span>
+      <span class="legend-chip wrs-consonant">consonant / blend</span>
+      <span class="legend-chip wrs-welded">welded / exception</span>
+    </div>
+    <div class="tb-base-label hidden" id="tbBaseLabel">⚡ This is a Latin base — pull the matching tile</div>
     <div class="answer-row" id="answerRow"></div>
     <div class="tile-tray" id="tileTray"></div>
     <div class="tb-feedback" id="tbFeedback"></div>
@@ -442,6 +461,65 @@ const DD=[
 const SYMS={spades:'♠',clubs:'♣',hearts:'♥',diamonds:'♦'};
 const SUBS={spades:'2.1–2.2',clubs:'2.3',hearts:'2.4',diamonds:'2.5'};
 const REDS={hearts:true,diamonds:true};
+/* Latin bases that appear on Jack/Queen/King hearts & diamonds cards (Substeps 2.4/2.5).
+   When the dictated word IS one of these bases, show the Base Elements row instead of a full spelling tray. */
+const LATIN_BASES=['rupt','fess','sent','pel','mit','pend','press','sist','vent','dict','duct','struct','ject','spect','tract','fect','rect','vict'];
+function isLatinBaseWord(word){ return LATIN_BASES.includes(cleanWordForCheck(word)); }
+function cleanWordForCheck(w){ return w.replace(/-/g,'').split(' ')[0].toLowerCase(); }
+const VOWELS=['a','e','i','o','u'];
+const WELDED_CHUNKS=['ang','ank','ing','ink','ong','onk','ung','unk','all','ild','ind','old','olt','ost','am','an'];
+const DIGRAPH_BLEND_CHUNKS=['wh','ch','sh','th','ck','qu'];
+// Sorted longest-first so segmentation always tries multi-letter chunks before single letters
+const ALL_CHUNKS=[...WELDED_CHUNKS,...DIGRAPH_BLEND_CHUNKS].sort((a,b)=>b.length-a.length);
+
+function tileCategory(chunk){
+  if(WELDED_CHUNKS.includes(chunk)) return 'welded';
+  if(DIGRAPH_BLEND_CHUNKS.includes(chunk)) return 'consonant';
+  if(chunk.length===1 && VOWELS.includes(chunk)) return 'vowel';
+  return 'consonant';
+}
+
+/* Break a word into the Wilson-style tiles a student would actually pull:
+   tries welded/digraph chunks first (longest match), falls back to single letters. */
+function segmentToWRSTiles(word){
+  const w=word.toLowerCase();
+  const tiles=[];
+  let i=0;
+  while(i<w.length){
+    let matched=null;
+    for(const chunk of ALL_CHUNKS){
+      if(w.slice(i,i+chunk.length)===chunk){ matched=chunk; break; }
+    }
+    if(matched){ tiles.push(matched); i+=matched.length; }
+    else{ tiles.push(w[i]); i+=1; }
+  }
+  return tiles;
+}
+
+/* Generate plausible distractor tiles in the same categories as the target,
+   so the student has to actually choose the right tile, not just sequence letters. */
+function generateDistractorTiles(targetTiles){
+  const distractorsByCategory={
+    vowel:['a','e','i','o','u'],
+    consonant:['b','c','d','f','g','h','j','k','l','m','n','p','r','s','t','v','w','y','z','sh','ch','th','wh','ck'],
+    welded:['ang','ank','ing','ink','ong','onk','ung','unk','all','ild','ind','old','olt','ost']
+  };
+  const targetSet=new Set(targetTiles);
+  const numDistract=Math.min(3,Math.max(2,Math.ceil(targetTiles.length/2)));
+  const distractors=[];
+  // Pull distractors proportionally from categories present in the target word
+  const categoriesInWord=[...new Set(targetTiles.map(tileCategory))];
+  let guard=0;
+  while(distractors.length<numDistract && guard<60){
+    guard++;
+    const cat=categoriesInWord[Math.floor(Math.random()*categoriesInWord.length)];
+    const pool=distractorsByCategory[cat].filter(t=>!targetSet.has(t));
+    if(!pool.length)continue;
+    const pick=pool[Math.floor(Math.random()*pool.length)];
+    if(!distractors.includes(pick)) distractors.push(pick);
+  }
+  return distractors;
+}
 
 /* HIGH-FREQUENCY POWER WORDS — spell + use correctly in a sentence */
 const POWER_WORDS=[
@@ -1019,21 +1097,31 @@ function goToSpelling(){
   }
 }
 
-let tileState={letters:[],placed:[],wordTarget:'',usedIdx:new Set()};
+let tileState={letters:[],placed:[],wordTarget:'',usedIdx:new Set(),isLatinBase:false};
 function cleanWord(w){ return w.replace(/-/g,'').split(' ')[0].toLowerCase(); }
 function buildTileBoard(word){
   const target=cleanWord(word);
-  q('tbTitle').textContent=(G.stealMode?'STEAL CHANCE — ':'')+'Spell the word you heard:';
-  const letters=target.split('');
-  const distractorPool='etaoinshrdlcumwfgypbvkjxqz'.split('');
-  const numDistract=Math.min(3, Math.max(1, Math.floor(letters.length/3)));
-  const distractors=[];
-  while(distractors.length<numDistract){
-    const c=distractorPool[Math.floor(Math.random()*distractorPool.length)];
-    distractors.push(c);
+  const latinBase=isLatinBaseWord(target);
+  tileState.isLatinBase=latinBase;
+
+  if(latinBase){
+    q('tbTitle').textContent=(G.stealMode?'STEAL CHANCE — ':'')+'Spell the Latin base you heard:';
+    hid('tbBaseLabel',false);
+  } else {
+    q('tbTitle').textContent=(G.stealMode?'STEAL CHANCE — ':'')+'Pull the correct tiles to spell the word:';
+    hid('tbBaseLabel',true);
   }
-  let tileLetters=shuf([...letters,...distractors]);
-  tileState={letters:tileLetters,placed:new Array(target.length).fill(null),wordTarget:target,usedIdx:new Set()};
+
+  const targetTiles=segmentToWRSTiles(target);
+  const distractorTiles=generateDistractorTiles(targetTiles);
+  const allTiles=shuf([...targetTiles,...distractorTiles]);
+
+  tileState.letters=allTiles;
+  tileState.placed=new Array(targetTiles.length).fill(null);
+  tileState.wordTarget=target;
+  tileState.targetTiles=targetTiles;
+  tileState.usedIdx=new Set();
+
   renderTileBoard();
   q('correctReveal').classList.add('hidden');
   q('tbFeedback').textContent='';
@@ -1041,14 +1129,19 @@ function buildTileBoard(word){
   q('submitBtn').disabled=true;
   q('answerRow').className='answer-row';
 }
+function tileColorClass(chunk){
+  const cat=tileCategory(chunk);
+  return 'wrs-'+cat;
+}
 function renderTileBoard(){
   const ar=q('answerRow'); ar.innerHTML='';
-  for(let i=0;i<tileState.wordTarget.length;i++){
+  for(let i=0;i<tileState.targetTiles.length;i++){
     if(tileState.placed[i]!==null){
       const idx=tileState.placed[i];
+      const chunk=tileState.letters[idx];
       const tile=document.createElement('div');
-      tile.className='tile placed';
-      tile.textContent=tileState.letters[idx].toUpperCase();
+      tile.className='tile placed '+tileColorClass(chunk);
+      tile.textContent=chunk;
       tile.onclick=()=>{ removeFromSlot(i); };
       tile.draggable=true;
       tile.ondragstart=e=>{ e.dataTransfer.setData('text/plain','slot:'+i); };
@@ -1063,11 +1156,11 @@ function renderTileBoard(){
     }
   }
   const tray=q('tileTray'); tray.innerHTML='';
-  tileState.letters.forEach((ch,idx)=>{
+  tileState.letters.forEach((chunk,idx)=>{
     if(tileState.usedIdx.has(idx))return;
     const tile=document.createElement('div');
-    tile.className='tile';
-    tile.textContent=ch.toUpperCase();
+    tile.className='tile '+tileColorClass(chunk);
+    tile.textContent=chunk;
     tile.draggable=true;
     tile.dataset.idx=idx;
     tile.onclick=()=>{ placeInNextSlot(idx); };
@@ -1125,7 +1218,7 @@ function handleDropToTray(data){
   }
 }
 function clearAnswer(){
-  tileState.placed=new Array(tileState.wordTarget.length).fill(null);
+  tileState.placed=new Array(tileState.targetTiles.length).fill(null);
   tileState.usedIdx=new Set();
   renderTileBoard();
 }
@@ -1185,9 +1278,9 @@ function cpuAttemptSpelling(isSteal){
     hid('cthink',true);
     const success=Math.random()<0.65;
     if(success){
-      for(let i=0;i<tileState.wordTarget.length;i++){
-        const ch=tileState.wordTarget[i];
-        const idx=tileState.letters.findIndex((l,ix)=>l===ch&&!tileState.usedIdx.has(ix));
+      for(let i=0;i<tileState.targetTiles.length;i++){
+        const chunk=tileState.targetTiles[i];
+        const idx=tileState.letters.findIndex((l,ix)=>l===chunk&&!tileState.usedIdx.has(ix));
         if(idx>-1){ tileState.placed[i]=idx; tileState.usedIdx.add(idx); }
       }
       renderTileBoard();
@@ -1195,7 +1288,7 @@ function cpuAttemptSpelling(isSteal){
     } else {
       const avail=tileState.letters.map((l,ix)=>ix).filter(ix=>!tileState.usedIdx.has(ix));
       const shuffled=shuf(avail);
-      for(let i=0;i<tileState.wordTarget.length && i<shuffled.length;i++){
+      for(let i=0;i<tileState.targetTiles.length && i<shuffled.length;i++){
         tileState.placed[i]=shuffled[i];
         tileState.usedIdx.add(shuffled[i]);
       }
@@ -1251,7 +1344,7 @@ let pwTimer=null, pwState=null;
 function schedulePowerWord(){
   clearPowerWordTimer();
   if(G.ph==='waiting'||!G.d1||!G.d2)return;
-  const delay=14000+Math.random()*22000; // 14-36s between chances
+  const delay=300000+Math.random()*120000; // 5-7 minutes between chances
   pwTimer=setTimeout(()=>{
     if(G.d1.length<2||G.d2.length<2){ schedulePowerWord(); return; } // don't fire if a deck's nearly empty
     showPowerWordPopup();
