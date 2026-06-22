@@ -506,8 +506,12 @@ function segmentToWRSTiles(word){
 
 /* Generate plausible distractor tiles in the same categories as the target,
    so the student has to actually choose the right tile, not just sequence letters. */
-function generateDistractorTiles(targetTiles){
-  const distractorsByCategory={
+function generateDistractorTiles(targetTiles,plainLettersOnly){
+  const distractorsByCategory=plainLettersOnly?{
+    vowel:['a','e','i','o','u'],
+    consonant:['b','c','d','f','g','h','j','k','l','m','n','p','q','r','s','t','v','w','x','y','z'],
+    welded:['b','c','d','f','g','h','j','k','l','m','n','p','q','r','s','t','v','w','x','y','z']
+  }:{
     vowel:['a','e','i','o','u'],
     consonant:['b','c','d','f','g','h','j','k','l','m','n','p','r','s','t','v','w','y','z','sh','ch','th','wh','ck'],
     welded:['ang','ank','ing','ink','ong','onk','ung','unk','all','ild','ind','old','olt','ost']
@@ -1391,8 +1395,10 @@ function speakPowerWord(){
 let pwTileState={letters:[],placed:[],target:'',usedIdx:new Set()};
 function buildPWTileBoard(word){
   const target=word.toLowerCase();
-  const targetTiles=segmentToWRSTiles(target);
-  const distractorTiles=generateDistractorTiles(targetTiles);
+  // Power Words are high-frequency irregular words taught as whole-word exceptions —
+  // they don't follow phonetic patterns, so tiles stay single letters (no welded/digraph chunking).
+  const targetTiles=target.split('');
+  const distractorTiles=generateDistractorTiles(targetTiles,true);
   const allTiles=shuf([...targetTiles,...distractorTiles]);
   pwTileState={letters:allTiles,placed:new Array(targetTiles.length).fill(null),target,targetTiles,usedIdx:new Set()};
   renderPWTiles();
