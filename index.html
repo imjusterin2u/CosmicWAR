@@ -663,30 +663,50 @@ let pinUnlocked=false;
 function getStoredPin(cb){
   ensureFirebaseRosterReady(useFB=>{
     if(useFB){
-      db2.ref('settings/teacherPin').once('value').then(snap=>{ cb(snap.val()||null); }).catch(()=>{ cb(localStorage.getItem('cwTeacherPin')||null); });
+      try{
+        db2.ref('settings/teacherPin').once('value').then(snap=>{ cb(snap.val()||null); }).catch(()=>{ cb(localStorage.getItem('cwTeacherPin')||null); });
+      }catch(e){ console.warn('Cosmic WAR: Firebase PIN read failed synchronously, using local fallback.',e); cb(localStorage.getItem('cwTeacherPin')||null); }
     } else { cb(localStorage.getItem('cwTeacherPin')||null); }
   });
 }
 function setStoredPin(pin,cb){
   ensureFirebaseRosterReady(useFB=>{
-    if(useFB){ db2.ref('settings/teacherPin').set(pin).then(()=>cb&&cb()).catch(()=>{ localStorage.setItem('cwTeacherPin',pin); cb&&cb(); }); }
+    if(useFB){
+      try{
+        db2.ref('settings/teacherPin').set(pin).then(()=>cb&&cb()).catch(()=>{ localStorage.setItem('cwTeacherPin',pin); cb&&cb(); });
+      }catch(e){ console.warn('Cosmic WAR: Firebase PIN write failed synchronously, using local fallback.',e); localStorage.setItem('cwTeacherPin',pin); cb&&cb(); }
+    }
     else { localStorage.setItem('cwTeacherPin',pin); cb&&cb(); }
   });
 }
 function openTeacherGate(){
   if(pinUnlocked){ openRoster(); return; }
   q('pinInput').value=''; q('pinError').textContent='';
+  let answered=false;
+  const fallbackTimer=setTimeout(()=>{
+    if(answered)return;
+    answered=true;
+    console.warn('Cosmic WAR: PIN lookup timed out, falling back to local PIN check.');
+    const localPin=localStorage.getItem('cwTeacherPin')||null;
+    showPinModal(localPin);
+  },4000);
   getStoredPin(pin=>{
-    if(!pin){
-      q('pinHelpText').textContent='No teacher PIN is set yet. Choose a 4-6 digit PIN to protect the roster and reports.';
-      hid('pinSetupLink',true);
-    } else {
-      q('pinHelpText').textContent='Enter the teacher PIN to access the roster and reports.';
-      hid('pinSetupLink',false);
-    }
-    q('pinOverlay').classList.add('show');
-    setTimeout(()=>q('pinInput').focus(),100);
+    if(answered)return;
+    answered=true;
+    clearTimeout(fallbackTimer);
+    showPinModal(pin);
   });
+}
+function showPinModal(pin){
+  if(!pin){
+    q('pinHelpText').textContent='No teacher PIN is set yet. Choose a 4-6 digit PIN to protect the roster and reports.';
+    hid('pinSetupLink',true);
+  } else {
+    q('pinHelpText').textContent='Enter the teacher PIN to access the roster and reports.';
+    hid('pinSetupLink',false);
+  }
+  q('pinOverlay').classList.add('show');
+  setTimeout(()=>q('pinInput').focus(),100);
 }
 function closePinGate(){ q('pinOverlay').classList.remove('show'); }
 function showPinSetup(){
