@@ -101,26 +101,52 @@ Each card has three possible words (the computer picks one at random per round):
 
 A successful **steal** earns an additional +10 XP bonus.
 
-### Letter tile board
-- Tiles include the correct letters of the word **plus a few distractor letters** for added challenge
+### Wilson-style tile board
+Tiles follow the real Wilson Reading System color convention — **white tile face, colored border** — not a colored fill, matching the physical board:
+
+| Border color | Category | Examples |
+|---|---|---|
+| 🟠 Salmon/peach | Vowels | a, e, i, o, u |
+| 🟡 Yellow | Consonants, digraphs, blends | b, ch, sh, th, wh, ck, qu |
+| 🟢 Green | Welded sounds & closed-syllable exceptions | ang, ank, ing, ink, ong, onk, ung, unk, all, ild, ind, old, olt, ost |
+| 🟡🟫 Dark gold (italic) | Suffixes | -s, -es |
+
+This applies to **both** tile boards in the game, but with one important difference:
+
+- **Card words** (the deck's spelling words) follow real WRS phonetic patterns, so they're chunked into welded sounds, digraphs, and blends — the same color-coded categories above.
+- **Power Words** are high-frequency *irregular* words taught as whole-word exceptions, not phonetic patterns — Wilson doesn't chunk them, so neither does this board. Each letter stays separate (e.g. *"many"* → m · a · n · y, not m · an · y), while still using the same vowel/consonant border-color coding so the visual language stays consistent.
+
+The dictated word is automatically broken into the same chunks a student would pull on a physical Wilson board — for example *"brand"* becomes four tiles: **b · r · an · d** (the welded **an** is one tile, not two letters). A handful of same-category distractor tiles are mixed into the tray, so the task is genuinely "find the right tile," not just "put these in order."
+
+When the dictated word is the rulebook's "Choice 2" base-plus-suffix form (e.g. *bank → banks*, *brush → brushes*), the suffix is carved off as its own distinct tile showing **-s** or **-es** with the dash — visually separate from the base word's sound tiles, with a dark gold border instead of the light yellow used for regular consonant tiles. This mirrors how Wilson marks suffixes as a different category from the base sound pattern.
+
+For the **Latin base cards** (Jack/Queen/King on Hearts and Diamonds — Substeps 2.4 and 2.5), a small ⚡ label appears above the tray noting it's a base, matching how Wilson introduces Base Elements at that stage. Earlier substeps never show this label.
+
 - Tap a tray tile to place it in the next empty slot, or tap a placed tile to send it back
 - Drag-and-drop also works for both placing and removing tiles
 - "Clear" empties the board; "Submit" checks the spelling once every slot is filled
 - On submission, the correct spelling is always revealed on screen
 
 ### Voice
-The dictation voice can be changed in **Setup → 🔊 Voice** using any voice installed in your browser/OS. Use the 🔁 Replay button to hear the word again as many times as needed.
+The dictation voice can be changed from the **🔊 Voice** dropdown on the home screen, or from the same dropdown inside **Setup** — both stay in sync. Your choice is saved in the browser and stays selected the next time you open the game, so you only need to set it once.
+
+The list shows every voice your browser/OS has installed. On Mac/iOS, voices like **Samantha** tend to sound more natural than the default; on Chromebooks or Windows the available names will differ since they come from the operating system, not from this game. Use the 🔁 Replay button during a round to hear the word again as many times as needed.
 
 ### ⚡ Power Word Challenges
-At random moments during play (roughly every 15–35 seconds, anytime — even mid-round), a glowing **Power Word** popup appears on screen. Whichever player taps it first gets the challenge:
+At random moments during play (roughly every 5–7 minutes, anytime — even mid-round), a glowing **Power Word** popup appears on screen.
 
+**Who gets it:**
+- **vs Computer**: the human player always gets it — the AI doesn't compete for popups
+- **Pass & Play**: whoever is currently the active player in that round gets first crack. If the popup fires between rounds (no one's "up" yet), it's assigned randomly to either player, since there's no real way to race for a tap when only one person is looking at the screen at a time
+- **Online**: whoever taps first wins the race, the same way it works for everyone sharing one screen
+
+**The challenge:**
 1. The computer dictates a high-frequency word (her, were, could, should, their, world, etc. — the original rulebook's "Bonus Cards" list)
-2. The player spells it on a mini letter-tile board
+2. The player spells it on a mini letter-tile board (plain letter tiles, not WRS-chunked, since these are irregular sight words)
 3. If correct, they then pick the sentence that uses the word correctly from 2–3 multiple-choice options
-4. **Success** → steal one random card from the opponent's deck **and** earn +30 XP
-5. A miss at either step closes the challenge with no penalty — the popup will return again later
+4. **Success on both steps** → steal one random card from the opponent's deck **and** earn +30 XP
 
-In **Pass & Play** mode, whichever physical player taps the popup first plays the challenge. (Online co-op currently treats Player 1 as the default claimer when triggered — see note in Customizing below if you want to adjust this.)
+**Steal chance:** A miss at either step — wrong spelling, or correct spelling but the wrong sentence — passes the **same word** to the other player as a steal attempt. The stealer must complete the full challenge (spell it, then pick the right sentence) to claim the bonus; missing either step on the steal attempt simply closes the challenge with no penalty to anyone. (In **vs Computer** mode, there's no steal step, since the AI can't attempt it — a miss just closes the challenge.)
 
 ### 🎓 Student Roster & Persistent Rank
 Students no longer type their name freehand. From the home screen, tap **⚙️ Manage student roster** to add each student once — their name then appears in a dropdown for them to select before playing.
