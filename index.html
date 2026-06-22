@@ -1032,8 +1032,68 @@ function sstart(){
 }
 function shuf(a){a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 function bdeck(suits){return shuf(DD.filter(c=>suits.includes(c.s)))}
+
+/* Guarantee a WAR (tied card values) happens within the first 5 rounds.
+   If chance already produces one, do nothing — only intervenes when needed,
+   and only swaps cards beyond round 5 so the rest of the deck stays untouched. */
+function ensureEarlyWar(d1,d2){
+  const WINDOW=Math.min(5,d1.length,d2.length);
+  for(let i=0;i<WINDOW;i++){
+    if(d1[i].v===d2[i].v) return; // natural WAR already happens early — leave it alone
+  }
+  const roundOrder=shuf(Array.from({length:WINDOW},(_,i)=>i));
+  // Pass 1: swap a card from beyond the window into d2 to match a d1 value in the window.
+  for(const targetRound of roundOrder){
+    const targetValue=d1[targetRound].v;
+    for(let j=WINDOW;j<d2.length;j++){
+      if(d2[j].v===targetValue){
+        const tmp=d2[targetRound]; d2[targetRound]=d2[j]; d2[j]=tmp; return;
+      }
+    }
+  }
+  // Pass 2: same, but swap into d1 to match a d2 value in the window.
+  for(const targetRound of roundOrder){
+    const targetValue=d2[targetRound].v;
+    for(let j=WINDOW;j<d1.length;j++){
+      if(d1[j].v===targetValue){
+        const tmp=d1[targetRound]; d1[targetRound]=d1[j]; d1[j]=tmp; return;
+      }
+    }
+  }
+  // Pass 3 (scarce-card decks, e.g. only 1-2 suits selected): the matching value may already be
+  // sitting inside the window itself, just at a different position on each side. Re-pair within the window.
+  for(let i=0;i<WINDOW;i++){
+    for(let k=0;k<WINDOW;k++){
+      if(d2[k].v===d1[i].v && i!==k){
+        const tmp=d2[i]; d2[i]=d2[k]; d2[k]=tmp; return;
+      }
+    }
+  }
+  // Pass 4: none of d1's current window values exist anywhere in d2 at all (can happen with very
+  // few suits, where both copies of several values landed entirely on one side). Replace a d1
+  // window card with a different d1 card from beyond the window whose value DOES exist in d2.
+  for(let i=0;i<WINDOW;i++){
+    for(let j=WINDOW;j<d1.length;j++){
+      const candidateValue=d1[j].v;
+      const matchInD2=d2.findIndex(c=>c.v===candidateValue);
+      if(matchInD2>-1){
+        const tmp=d1[i]; d1[i]=d1[j]; d1[j]=tmp;
+        if(matchInD2!==i){
+          const tmp2=d2[i]; d2[i]=d2[matchInD2]; d2[matchInD2]=tmp2;
+        }
+        return;
+      }
+    }
+  }
+  // If we reach here, no value appears on both sides at all (e.g. only one suit selected, so
+  // every value exists exactly once total) — a guaranteed WAR is mathematically impossible
+  // with this deck, so we leave it to natural chance.
+}
+
 function slg(p1,p2,isCpu){const dk=bdeck(sSuits),mid=Math.floor(dk.length/2);sXP=0;
-  G={p1:p1,p2:p2,d1:dk.slice(0,mid),d2:dk.slice(mid),pot:[],ph:'flip',c1:null,c2:null,win:0,pend:[],cpu:isCpu,mode:'local',
+  const hand1=dk.slice(0,mid), hand2=dk.slice(mid);
+  ensureEarlyWar(hand1,hand2);
+  G={p1:p1,p2:p2,d1:hand1,d2:hand2,pot:[],ph:'flip',c1:null,c2:null,win:0,pend:[],cpu:isCpu,mode:'local',
      curWord:null,curWordSrc:null,stealMode:false,stealAttempted:false};
   rg();show('sg');setS('');setTP('Engage — flip your cards!');q('zl1').textContent=p1.toUpperCase();q('zl2').textContent=p2.toUpperCase();
   schedulePowerWord();}
@@ -1042,7 +1102,9 @@ function ifc(){if(db2)return true;try{if(FC.apiKey==='YOUR_API_KEY')return false
 function hog(mn){if(!ifc()){alert('Firebase not configured — see README.md.\nTry Pass & Play for now!');return}
   const code=Math.floor(1000+Math.random()*9000).toString();myRole='p1';
   const dk=bdeck(sSuits),mid=Math.floor(dk.length/2);
-  const rd={p1:mn,p2:'',d1:dk.slice(0,mid),d2:dk.slice(mid),pot:[],ph:'waiting',c1:null,c2:null,win:0,pend:[]};
+  const hand1=dk.slice(0,mid), hand2=dk.slice(mid);
+  ensureEarlyWar(hand1,hand2);
+  const rd={p1:mn,p2:'',d1:hand1,d2:hand2,pot:[],ph:'waiting',c1:null,c2:null,win:0,pend:[]};
   rref=db2.ref('rooms/'+code);rref.set(rd).then(()=>{
     q('rcd').textContent=code;q('wst').textContent='Scanning for incoming ships…';show('sw2');
     rref.child('p2').on('value',sn=>{if(sn.val()){rref.child('p2').off();rref.update({ph:'flip'});G={...rd,p2:sn.val(),mode:'online',myRole:'p1',code,curWord:null,stealMode:false};lon();rg();show('sg');setTP('Engage — flip your cards!');schedulePowerWord()}})})
