@@ -563,6 +563,14 @@ const DIGRAPH_BLEND_CHUNKS=['wh','ch','sh','th','ck','qu'];
 // Sorted longest-first so segmentation always tries multi-letter chunks before single letters
 const ALL_CHUNKS=[...WELDED_CHUNKS,...DIGRAPH_BLEND_CHUNKS].sort((a,b)=>b.length-a.length);
 
+/* WRS exceptions: some welded-sound chunks are only "welded" in specific words — the same
+   letters can spell a regular short-vowel pattern elsewhere. "ost" is long-o in most/post
+   (a true closed-syllable exception) but plain short-o in frost/frosts (regular blend + vowel).
+   Listed here as { chunk: [words where it should NOT be treated as welded] }. */
+const WELDED_EXCEPTIONS={
+  'ost':['frost','frosts']
+};
+
 function tileCategory(chunk){
   if(chunk.startsWith('-')) return 'suffix';
   if(WELDED_CHUNKS.includes(chunk)) return 'welded';
@@ -572,7 +580,9 @@ function tileCategory(chunk){
 }
 
 /* Break a word into the Wilson-style tiles a student would actually pull:
-   tries welded/digraph chunks first (longest match), falls back to single letters. */
+   tries welded/digraph chunks first (longest match), falls back to single letters.
+   fullWord is passed so word-specific welded-sound exceptions (see WELDED_EXCEPTIONS above)
+   can be checked — e.g. "ost" should chunk in "most" but not in "frost". */
 function segmentToWRSTiles(word,suffix){
   const w=word.toLowerCase();
   const baseLen=suffix?w.length-suffix.length:w.length;
@@ -582,7 +592,11 @@ function segmentToWRSTiles(word,suffix){
   while(i<base.length){
     let matched=null;
     for(const chunk of ALL_CHUNKS){
-      if(base.slice(i,i+chunk.length)===chunk){ matched=chunk; break; }
+      if(base.slice(i,i+chunk.length)===chunk){
+        const excList=WELDED_EXCEPTIONS[chunk];
+        if(excList && excList.includes(w)){ continue; } // this word is an exception — skip this chunk, fall through to single letters
+        matched=chunk; break;
+      }
     }
     if(matched){ tiles.push(matched); i+=matched.length; }
     else{ tiles.push(base[i]); i+=1; }
