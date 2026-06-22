@@ -159,6 +159,31 @@ label{font-size:12px;color:var(--muted);display:block;margin-top:.75rem}
 @keyframes lp{from{transform:scale(1)}to{transform:scale(1.12)}}
 .lutl{font-size:12px;letter-spacing:3px;color:var(--muted);margin:.5rem 0 .25rem}
 .lurn{font-size:22px;font-weight:800;color:var(--gold);text-shadow:0 0 20px var(--gold-glow)}
+.roster-link{background:none;border:none;color:var(--purple);font-size:11px;cursor:pointer;text-decoration:underline;padding:4px 0}
+select#hn{width:100%;padding:10px 14px;border-radius:var(--rsm);border:1px solid rgba(124,111,247,.3);background:rgba(255,255,255,.05);color:var(--text);font-size:15px;margin-top:.35rem;flex:1}
+select#hn:focus{outline:none;border-color:var(--purple);box-shadow:0 0 10px var(--purple-glow)}
+.roster-overlay{position:fixed;inset:0;z-index:997;background:rgba(7,8,15,.9);display:none;align-items:center;justify-content:center;padding:1.5rem}
+.roster-overlay.show{display:flex}
+.roster-box{background:rgba(11,13,26,.97);border:1px solid rgba(124,111,247,.35);border-radius:var(--radius);padding:1.25rem;max-width:380px;width:100%;max-height:80vh;display:flex;flex-direction:column}
+.roster-head{display:flex;align-items:center;justify-content:space-between;font-size:15px;font-weight:700;color:var(--purple);margin-bottom:1rem}
+.roster-add-row{display:flex;gap:8px;margin-bottom:1rem}
+.roster-add-row input{margin-top:0;flex:1}
+.roster-list{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:6px;min-height:80px}
+.roster-row{display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.04);border:1px solid rgba(124,111,247,.18);border-radius:var(--rsm);padding:8px 12px}
+.roster-row-name{font-size:14px;color:var(--text);font-weight:600}
+.roster-row-xp{font-size:11px;color:var(--muted)}
+.roster-row-del{background:none;border:none;color:var(--coral);font-size:13px;cursor:pointer;padding:4px 8px}
+.roster-status{font-size:11px;color:var(--muted);text-align:center;margin-top:.75rem}
+.roster-row-rep{background:rgba(124,111,247,.15);border:1px solid rgba(124,111,247,.4);color:var(--purple);font-size:11px;cursor:pointer;padding:5px 9px;border-radius:14px;white-space:nowrap}
+.report-tabs{display:flex;gap:5px;margin-bottom:.85rem;flex-wrap:wrap}
+.report-tab{flex:1;min-width:90px;padding:7px 4px;border-radius:var(--rsm);border:1px solid rgba(124,111,247,.25);background:rgba(255,255,255,.03);color:var(--muted);font-size:11px;font-weight:600;cursor:pointer}
+.report-tab.active{background:rgba(124,111,247,.2);border-color:var(--purple);color:var(--purple)}
+.report-body{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:6px;min-height:120px}
+.report-row{display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.04);border:1px solid rgba(124,111,247,.16);border-radius:var(--rsm);padding:9px 12px}
+.report-word{font-size:14px;font-weight:700;color:var(--text)}
+.report-suit-tag{font-size:10px;color:var(--muted);margin-left:6px}
+.report-count{font-size:13px;font-weight:700;color:var(--coral);white-space:nowrap}
+.report-empty{text-align:center;color:var(--muted);font-size:12px;padding:1.5rem}
 .wb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;text-align:center}
 .wb h2{font-size:18px;font-weight:700;margin-bottom:.5rem}
 .wb p{font-size:13px;color:var(--muted);line-height:1.6}
@@ -195,6 +220,52 @@ label{font-size:12px;color:var(--muted);display:block;margin-top:.75rem}
   </div>
 </div>
 
+<div class="roster-overlay" id="pinOverlay">
+  <div class="roster-box" style="max-width:300px">
+    <div class="roster-head">
+      <span>🔒 Teacher PIN</span>
+      <button class="bsm" onclick="closePinGate()">Close</button>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:.85rem;line-height:1.5" id="pinHelpText">Enter the teacher PIN to access the roster and reports.</p>
+    <input type="text" id="pinInput" inputmode="numeric" maxlength="6" placeholder="••••" style="text-align:center;font-size:22px;letter-spacing:6px" onkeydown="if(event.key==='Enter')submitPin()"/>
+    <div class="roster-status" id="pinError" style="color:var(--coral);min-height:16px"></div>
+    <div class="br"><button class="btn bp" onclick="submitPin()">Unlock</button></div>
+    <div style="text-align:center;margin-top:.6rem">
+      <button class="roster-link" id="pinSetupLink" onclick="showPinSetup()">First time? Set a teacher PIN</button>
+    </div>
+  </div>
+</div>
+
+<div class="roster-overlay" id="rosterOverlay">
+  <div class="roster-box">
+    <div class="roster-head">
+      <span>⚙️ Student Roster</span>
+      <button class="bsm" onclick="closeRoster()">Close</button>
+    </div>
+    <div class="roster-add-row">
+      <input type="text" id="rosterNewName" placeholder="Add student name…" maxlength="20" onkeydown="if(event.key==='Enter')addRosterName()"/>
+      <button class="btn bp" style="width:auto;padding:9px 16px" onclick="addRosterName()">Add</button>
+    </div>
+    <div class="roster-list" id="rosterList"></div>
+    <div class="roster-status" id="rosterStatus"></div>
+  </div>
+</div>
+
+<div class="roster-overlay" id="reportOverlay">
+  <div class="roster-box" style="max-width:460px">
+    <div class="roster-head">
+      <span id="reportTitle">📊 Report</span>
+      <button class="bsm" onclick="closeReport()">Close</button>
+    </div>
+    <div class="report-tabs">
+      <button class="report-tab active" id="tabCard" onclick="switchReportTab('card')">Card Words</button>
+      <button class="report-tab" id="tabPower" onclick="switchReportTab('power')">Power Words</button>
+      <button class="report-tab" id="tabSentence" onclick="switchReportTab('sentence')">Sentence Use</button>
+    </div>
+    <div class="report-body" id="reportBody"></div>
+  </div>
+</div>
+
 <div class="screen active" id="sh">
   <div class="hh">
     <span class="hl">🚀</span>
@@ -203,7 +274,10 @@ label{font-size:12px;color:var(--muted);display:block;margin-top:.75rem}
   </div>
   <div class="hnr">
     <span class="hnlbl">Pilot:</span>
-    <input type="text" id="hn" placeholder="Enter your callsign" maxlength="20" oninput="rfh()"/>
+    <select id="hn" onchange="rfh()"><option value="">— Select your name —</option></select>
+  </div>
+  <div style="text-align:right;padding:0 1.25rem">
+    <button class="roster-link" onclick="openTeacherGate()">🔒 Teacher Tools</button>
   </div>
   <div class="xpp">
     <div class="xrr"><span class="xrank" id="hr">🛸 Cadet</span><span class="xnum" id="hxn">0 XP</span></div>
@@ -415,13 +489,306 @@ const POWER_WORDS=[
 
 
 const RANKS=[{n:'🛸 Cadet',x:0},{n:'🌙 Navigator',x:100},{n:'⭐ Pilot',x:250},{n:'🪐 Commander',x:500},{n:'🌠 Captain',x:900},{n:'🚀 Major',x:1400},{n:'🌌 Colonel',x:2100},{n:'☄️ Admiral',x:3000},{n:'🌟 Star Admiral',x:4200},{n:'🏆 Cosmic Legend',x:6000}];
-const lxp=n=>{try{const d=localStorage.getItem('cwxp_'+n);return d?JSON.parse(d):{xp:0}}catch(e){return{xp:0}}};
-const sxp=(n,d)=>{try{localStorage.setItem('cwxp_'+n,JSON.stringify(d))}catch(e){}};
 const grk=x=>{let r=RANKS[0];for(const k of RANKS){if(x>=k.x)r=k;}return r};
 const gnx=x=>{for(const k of RANKS){if(k.x>x)return k;}return null};
 function gpr(x){const c=grk(x),nx=gnx(x);if(!nx)return{p:100,c,nx:null,tn:0};return{p:((x-c.x)/(nx.x-c.x))*100,c,nx,tn:nx.x-x}}
-function rfh(){const n=(q('hn').value||'Pilot').trim();try{const d=lxp(n),{p,c,nx,tn}=gpr(d.xp);q('hr').textContent=c.n;q('hxn').textContent=d.xp+' XP';q('hxb').style.width=Math.min(p,100)+'%';q('hxnxt').textContent=nx?tn+' XP to '+nx.n:'MAX RANK'}catch(e){}}
-function awdXP(name,amt){if(!name||name==='Computer')return;const d=lxp(name),old=grk(d.xp).n;d.xp+=amt;sxp(name,d);if(grk(d.xp).n!==old)setTimeout(()=>showLU(grk(d.xp).n),700);shxt('+'+amt+' XP')}
+
+/* ROSTER + XP — Firebase-backed when configured, localStorage fallback otherwise */
+let rosterCache={}; // {name: xp}
+let rosterLoaded=false;
+
+function localGetXP(n){ try{const d=localStorage.getItem('cwxp_'+n);return d?JSON.parse(d).xp:0}catch(e){return 0} }
+function localSetXP(n,xp){ try{localStorage.setItem('cwxp_'+n,JSON.stringify({xp}))}catch(e){} }
+function localGetRoster(){ try{const d=localStorage.getItem('cwroster');return d?JSON.parse(d):[]}catch(e){return []} }
+function localSetRoster(list){ try{localStorage.setItem('cwroster',JSON.stringify(list))}catch(e){} }
+
+function ensureFirebaseRosterReady(cb){
+  if(!ifc()){ cb(false); return; }
+  cb(true);
+}
+
+function loadRoster(cb){
+  ensureFirebaseRosterReady(useFB=>{
+    if(useFB){
+      db2.ref('students').once('value').then(snap=>{
+        const val=snap.val()||{};
+        rosterCache={};
+        Object.keys(val).forEach(name=>{ rosterCache[name]=(val[name]&&val[name].xp)||0; });
+        rosterLoaded=true;
+        cb&&cb();
+      }).catch(()=>{ loadRosterLocal(cb); });
+    } else {
+      loadRosterLocal(cb);
+    }
+  });
+}
+function loadRosterLocal(cb){
+  const names=localGetRoster();
+  rosterCache={};
+  names.forEach(n=>{ rosterCache[n]=localGetXP(n); });
+  rosterLoaded=true;
+  cb&&cb();
+}
+
+function addStudentToRoster(name,cb){
+  name=name.trim();
+  if(!name)return;
+  rosterCache[name]=rosterCache[name]||0;
+  ensureFirebaseRosterReady(useFB=>{
+    if(useFB){ db2.ref('students/'+sanitizeKey(name)).set({name,xp:rosterCache[name]}).then(()=>cb&&cb()).catch(()=>{ const l=localGetRoster(); if(!l.includes(name)){l.push(name);localSetRoster(l);} localSetXP(name,rosterCache[name]); cb&&cb(); }); }
+    else { const l=localGetRoster(); if(!l.includes(name)){l.push(name);localSetRoster(l);} localSetXP(name,rosterCache[name]); cb&&cb(); }
+  });
+}
+function removeStudentFromRoster(name,cb){
+  delete rosterCache[name];
+  ensureFirebaseRosterReady(useFB=>{
+    if(useFB){ db2.ref('students/'+sanitizeKey(name)).remove().then(()=>cb&&cb()).catch(()=>{ const l=localGetRoster().filter(n=>n!==name); localSetRoster(l); cb&&cb(); }); }
+    else { const l=localGetRoster().filter(n=>n!==name); localSetRoster(l); cb&&cb(); }
+  });
+}
+function sanitizeKey(name){ return name.replace(/[.#$\[\]\/]/g,'_'); }
+
+/* MISSED WORD TRACKING — for teacher lesson-prep reports */
+function logMissedCardWord(studentName,word,suit){
+  if(!studentName||studentName==='Computer')return;
+  const cleanW=word.toLowerCase();
+  const path='missed/'+sanitizeKey(studentName)+'/card/'+sanitizeKey(cleanW);
+  ensureFirebaseRosterReady(useFB=>{
+    if(useFB){
+      db2.ref(path).transaction(cur=>{
+        if(!cur) return {word:cleanW,suit:suit||'',count:1,lastMissed:Date.now()};
+        return {word:cleanW,suit:suit||cur.suit||'',count:(cur.count||0)+1,lastMissed:Date.now()};
+      }).catch(()=>{ logMissedLocal(studentName,'card',cleanW,suit); });
+    } else { logMissedLocal(studentName,'card',cleanW,suit); }
+  });
+}
+function logMissedPowerWord(studentName,word){
+  if(!studentName||studentName==='Computer')return;
+  const cleanW=word.toLowerCase();
+  const path='missed/'+sanitizeKey(studentName)+'/power/'+sanitizeKey(cleanW);
+  ensureFirebaseRosterReady(useFB=>{
+    if(useFB){
+      db2.ref(path).transaction(cur=>{
+        if(!cur) return {word:cleanW,count:1,lastMissed:Date.now()};
+        return {word:cleanW,count:(cur.count||0)+1,lastMissed:Date.now()};
+      }).catch(()=>{ logMissedLocal(studentName,'power',cleanW,null); });
+    } else { logMissedLocal(studentName,'power',cleanW,null); }
+  });
+}
+function logMissedSentenceUsage(studentName,word){
+  if(!studentName||studentName==='Computer')return;
+  const cleanW=word.toLowerCase();
+  const path='missed/'+sanitizeKey(studentName)+'/sentence/'+sanitizeKey(cleanW);
+  ensureFirebaseRosterReady(useFB=>{
+    if(useFB){
+      db2.ref(path).transaction(cur=>{
+        if(!cur) return {word:cleanW,count:1,lastMissed:Date.now()};
+        return {word:cleanW,count:(cur.count||0)+1,lastMissed:Date.now()};
+      }).catch(()=>{ logMissedLocal(studentName,'sentence',cleanW,null); });
+    } else { logMissedLocal(studentName,'sentence',cleanW,null); }
+  });
+}
+function logMissedLocal(studentName,type,word,suit){
+  try{
+    const key='cwmissed_'+studentName;
+    const data=JSON.parse(localStorage.getItem(key)||'{"card":{},"power":{},"sentence":{}}');
+    if(!data.sentence) data.sentence={};
+    const bucket=data[type];
+    if(!bucket[word]) bucket[word]={word,suit:suit||'',count:0,lastMissed:0};
+    bucket[word].count++; bucket[word].lastMissed=Date.now();
+    if(suit) bucket[word].suit=suit;
+    localStorage.setItem(key,JSON.stringify(data));
+  }catch(e){}
+}
+function loadMissedWords(studentName,cb){
+  ensureFirebaseRosterReady(useFB=>{
+    if(useFB){
+      db2.ref('missed/'+sanitizeKey(studentName)).once('value').then(snap=>{
+        const val=snap.val()||{card:{},power:{},sentence:{}};
+        cb({card:Object.values(val.card||{}),power:Object.values(val.power||{}),sentence:Object.values(val.sentence||{})});
+      }).catch(()=>{ loadMissedWordsLocal(studentName,cb); });
+    } else { loadMissedWordsLocal(studentName,cb); }
+  });
+}
+function loadMissedWordsLocal(studentName,cb){
+  try{
+    const data=JSON.parse(localStorage.getItem('cwmissed_'+studentName)||'{"card":{},"power":{},"sentence":{}}');
+    cb({card:Object.values(data.card||{}),power:Object.values(data.power||{}),sentence:Object.values(data.sentence||{})});
+  }catch(e){ cb({card:[],power:[],sentence:[]}); }
+}
+
+
+function getXP(name){ return rosterCache[name]||0; }
+function setXPLocalCache(name,xp){ rosterCache[name]=xp; }
+
+function syncXPToBackend(name,xp){
+  ensureFirebaseRosterReady(useFB=>{
+    if(useFB){ db2.ref('students/'+sanitizeKey(name)).update({name,xp}).catch(()=>{ localSetXP(name,xp); }); }
+    else { localSetXP(name,xp); }
+  });
+}
+
+function rfh(){
+  const n=q('hn').value;
+  if(!n){ q('hr').textContent='🛸 Cadet'; q('hxn').textContent='0 XP'; q('hxb').style.width='0%'; q('hxnxt').textContent='Pick your name to see rank'; return; }
+  const xp=getXP(n),{p,c,nx,tn}=gpr(xp);
+  q('hr').textContent=c.n; q('hxn').textContent=xp+' XP'; q('hxb').style.width=Math.min(p,100)+'%';
+  q('hxnxt').textContent=nx?tn+' XP to '+nx.n:'MAX RANK';
+}
+function populateHomeDropdown(){
+  const sel=q('hn');
+  const prev=sel.value;
+  sel.innerHTML='<option value="">— Select your name —</option>';
+  Object.keys(rosterCache).sort((a,b)=>a.localeCompare(b)).forEach(name=>{
+    const opt=document.createElement('option'); opt.value=name; opt.textContent=name;
+    sel.appendChild(opt);
+  });
+  if(prev&&rosterCache.hasOwnProperty(prev)) sel.value=prev;
+  rfh();
+}
+function awdXP(name,amt){
+  if(!name||name==='Computer')return;
+  const old=getXP(name); const oldRank=grk(old).n;
+  const updated=old+amt;
+  setXPLocalCache(name,updated);
+  syncXPToBackend(name,updated);
+  if(grk(updated).n!==oldRank) setTimeout(()=>showLU(grk(updated).n),700);
+  shxt('+'+amt+' XP');
+  if(q('hn').value===name) rfh();
+}
+
+/* ROSTER MANAGEMENT MODAL */
+/* TEACHER PIN GATE */
+let pinUnlocked=false;
+function getStoredPin(cb){
+  ensureFirebaseRosterReady(useFB=>{
+    if(useFB){
+      db2.ref('settings/teacherPin').once('value').then(snap=>{ cb(snap.val()||null); }).catch(()=>{ cb(localStorage.getItem('cwTeacherPin')||null); });
+    } else { cb(localStorage.getItem('cwTeacherPin')||null); }
+  });
+}
+function setStoredPin(pin,cb){
+  ensureFirebaseRosterReady(useFB=>{
+    if(useFB){ db2.ref('settings/teacherPin').set(pin).then(()=>cb&&cb()).catch(()=>{ localStorage.setItem('cwTeacherPin',pin); cb&&cb(); }); }
+    else { localStorage.setItem('cwTeacherPin',pin); cb&&cb(); }
+  });
+}
+function openTeacherGate(){
+  if(pinUnlocked){ openRoster(); return; }
+  q('pinInput').value=''; q('pinError').textContent='';
+  getStoredPin(pin=>{
+    if(!pin){
+      q('pinHelpText').textContent='No teacher PIN is set yet. Choose a 4-6 digit PIN to protect the roster and reports.';
+      hid('pinSetupLink',true);
+    } else {
+      q('pinHelpText').textContent='Enter the teacher PIN to access the roster and reports.';
+      hid('pinSetupLink',false);
+    }
+    q('pinOverlay').classList.add('show');
+    setTimeout(()=>q('pinInput').focus(),100);
+  });
+}
+function closePinGate(){ q('pinOverlay').classList.remove('show'); }
+function showPinSetup(){
+  q('pinHelpText').textContent='Choose a 4-6 digit PIN to protect the roster and reports.';
+  hid('pinSetupLink',true);
+  q('pinInput').value=''; q('pinError').textContent=''; q('pinInput').focus();
+}
+function submitPin(){
+  const entered=q('pinInput').value.trim();
+  if(!entered){ q('pinError').textContent='Enter a PIN.'; return; }
+  getStoredPin(stored=>{
+    if(!stored){
+      if(entered.length<4){ q('pinError').textContent='PIN must be at least 4 digits.'; return; }
+      setStoredPin(entered,()=>{
+        pinUnlocked=true;
+        q('pinOverlay').classList.remove('show');
+        openRoster();
+      });
+    } else if(entered===stored){
+      pinUnlocked=true;
+      q('pinOverlay').classList.remove('show');
+      openRoster();
+    } else {
+      q('pinError').textContent='Incorrect PIN.';
+      q('pinInput').value='';
+    }
+  });
+}
+
+function openRoster(){
+  q('rosterOverlay').classList.add('show');
+  renderRosterList();
+  q('rosterStatus').textContent=db2?'Synced with Firebase — visible on every device.':'Firebase not configured — saved on this device only.';
+}
+function closeRoster(){
+  q('rosterOverlay').classList.remove('show');
+  populateHomeDropdown();
+}
+function renderRosterList(){
+  const list=q('rosterList'); list.innerHTML='';
+  const names=Object.keys(rosterCache).sort((a,b)=>a.localeCompare(b));
+  if(!names.length){ list.innerHTML='<div style="text-align:center;color:var(--muted);font-size:12px;padding:1rem">No students added yet.</div>'; return; }
+  names.forEach(name=>{
+    const xp=rosterCache[name],rank=grk(xp).n;
+    const row=document.createElement('div'); row.className='roster-row';
+    row.innerHTML=`<div><div class="roster-row-name">${name}</div><div class="roster-row-xp">${rank} · ${xp} XP</div></div>`;
+    const btnWrap=document.createElement('div'); btnWrap.style.display='flex'; btnWrap.style.gap='4px';
+    const rep=document.createElement('button'); rep.className='roster-row-rep'; rep.textContent='📊 Report';
+    rep.onclick=()=>openReport(name);
+    const del=document.createElement('button'); del.className='roster-row-del'; del.textContent='Remove';
+    del.onclick=()=>{ if(confirm('Remove '+name+' from the roster? Their XP history will be lost.')){ removeStudentFromRoster(name,()=>{ renderRosterList(); }); } };
+    btnWrap.appendChild(rep); btnWrap.appendChild(del);
+    row.appendChild(btnWrap);
+    list.appendChild(row);
+  });
+}
+function addRosterName(){
+  const input=q('rosterNewName');
+  const name=input.value.trim();
+  if(!name){ return; }
+  if(rosterCache.hasOwnProperty(name)){ alert('That name is already on the roster.'); return; }
+  addStudentToRoster(name,()=>{ input.value=''; renderRosterList(); });
+}
+
+/* TEACHER MISSED-WORD REPORT */
+let reportStudent=null, reportData={card:[],power:[],sentence:[]}, reportTab='card';
+const SUB_LABELS={spades:'2.1–2.2 (Welded/Blends)',clubs:'2.3 (Exceptions)',hearts:'2.4 (Latin Bases)',diamonds:'2.5 (3-Letter Blends)','':''};
+const REPORT_LABELS={card:'card words',power:'Power Words',sentence:'sentence-usage mistakes'};
+function openReport(name){
+  reportStudent=name; reportTab='card';
+  q('reportTitle').textContent='📊 '+name+'\'s Missed Words';
+  q('reportOverlay').classList.add('show');
+  q('reportBody').innerHTML='<div class="report-empty">Loading…</div>';
+  switchReportTab('card');
+  loadMissedWords(name,(data)=>{ reportData=data; renderReportTab(); });
+}
+function closeReport(){ q('reportOverlay').classList.remove('show'); reportStudent=null; }
+function switchReportTab(tab){
+  reportTab=tab;
+  q('tabCard').classList.toggle('active',tab==='card');
+  q('tabPower').classList.toggle('active',tab==='power');
+  q('tabSentence').classList.toggle('active',tab==='sentence');
+  renderReportTab();
+}
+function renderReportTab(){
+  const body=q('reportBody');
+  const list=reportData[reportTab]||[];
+  if(!list.length){ body.innerHTML='<div class="report-empty">No missed '+REPORT_LABELS[reportTab]+' yet — nice work! 🎉</div>'; return; }
+  const sorted=[...list].sort((a,b)=>(b.count||0)-(a.count||0));
+  body.innerHTML='';
+  sorted.forEach(item=>{
+    const row=document.createElement('div'); row.className='report-row';
+    const suitTag=reportTab==='card'&&item.suit?('<span class="report-suit-tag">'+(SUB_LABELS[item.suit]||item.suit)+'</span>'):'';
+    const labelTag=reportTab==='sentence'?'<span class="report-suit-tag">spelled correctly, used incorrectly</span>':'';
+    row.innerHTML=`<div class="report-word">${item.word.toUpperCase()}${suitTag}${labelTag}</div><div class="report-count">missed ${item.count}×</div>`;
+    body.appendChild(row);
+  });
+}
+
+/* Boot: load roster as soon as the page is ready */
+loadRoster(()=>{ populateHomeDropdown(); });
+
 function shxt(m){const t=q('xt');t.textContent=m;t.classList.add('sh');setTimeout(()=>t.classList.remove('sh'),1800)}
 function showLU(rn){q('lurn').textContent=rn;q('lu').classList.add('sh');SFX.lvl()}
 function closeLU(){q('lu').classList.remove('sh')}
@@ -485,13 +852,14 @@ function hid(id,v){q(id).classList.toggle('hidden',v)}
 
 let mode='',db2=null,rref=null,myRole='',sSuits=[],G={},sXP=0;
 function gs(m){
+  if(!q('hn').value){ alert('Please select your name first! If you\'re not on the list, ask your teacher to add you via "Manage student roster."'); return; }
   mode=m;
   q('stl').textContent=m==='computer'?'vs Computer':m==='local'?'Pass & Play':m==='host'?'Host Game':'Join Game';
   q('ssu').textContent=m==='computer'?'The computer dictates words — you and the AI spell them.':m==='local'?'Two players on one device — computer dictates each word.':m==='host'?'You\'ll get a code to share.':'Enter your host\'s room code.';
   hid('p2nl',m==='computer'||m==='host'||m==='join');
   hid('sjc',m!=='join');hid('fbn',m!=='host'&&m!=='join');
   if(m==='computer')q('p2n').value='Computer';
-  q('p1n').value=(q('hn').value||'Player 1').trim();
+  q('p1n').value=q('hn').value;
   show('ss');
 }
 function gsuits(){const s=[];if(q('cbs').checked)s.push('spades');if(q('cbc').checked)s.push('clubs');if(q('cbh').checked)s.push('hearts');if(q('cbd').checked)s.push('diamonds');return s}
@@ -752,6 +1120,8 @@ function submitSpelling(){
     q('correctReveal').textContent=tileState.wordTarget.toUpperCase();
     q('correctReveal').classList.remove('hidden');
     SFX.bad();
+    const missedBy = G.stealMode ? (G.win===1?2:1) : G.win;
+    logMissedCardWord(missedBy===1?G.p1:G.p2, tileState.wordTarget, G.curWordSrc?G.curWordSrc.s:null);
     setTimeout(()=>{
       q('answerRow').classList.remove('wrong');
       if(!G.stealMode){
@@ -938,6 +1308,7 @@ function submitPWSpelling(){
     SFX.bad();
     q('pwSpellFeedback').className='tb-feedback bad';
     q('pwSpellFeedback').textContent='Not quite — correct spelling: '+pwTileState.target.toUpperCase();
+    logMissedPowerWord(pwState.claimer===1?G.p1:G.p2, pwTileState.target);
     setTimeout(closePWChallenge,2000);
   }
 }
@@ -962,6 +1333,7 @@ function resolvePWSentence(correct,btn,grid){
   } else {
     btn.style.background='rgba(255,107,74,.2)'; btn.style.borderColor='var(--coral)';
     SFX.bad();
+    logMissedSentenceUsage(pwState.claimer===1?G.p1:G.p2, pwState.word.w);
     setTimeout(closePWChallenge,1600);
   }
 }
@@ -989,7 +1361,7 @@ function endG(wn){clearPowerWordTimer();hid('pwPopup',true);hid('pwPanel',true);
   q('etr').textContent=wn===1?'🏆':(G.cpu?'🤖':'🏆');q('etl').textContent=wname+' wins!';q('esub').textContent=lname+' ran out of cards';
   q('expe').textContent='Mission XP earned: +'+sXP+' XP';q('en1').textContent=G.p1;q('ec1').textContent=G.d1.length;q('en2b').textContent=G.p2;q('ec2').textContent=G.d2.length;
   q('eb1').classList.toggle('ew',wn===1);q('eb2').classList.toggle('ew',wn===2);
-  const pn=wn===1?G.p1:G.p2;const{xp}=lxp(pn),{p,c,nx,tn}=gpr(xp);q('er').textContent=c.n;q('exn').textContent=xp+' XP';q('exb').style.width=Math.min(p,100)+'%';
+  const pn=wn===1?G.p1:G.p2;const xp=getXP(pn),{p,c,nx,tn}=gpr(xp);q('er').textContent=c.n;q('exn').textContent=xp+' XP';q('exb').style.width=Math.min(p,100)+'%';
   show('se');SFX.cosmic()}
 function pag(){if(mode==='computer')slg(G.p1,'Computer',true);else if(mode==='local')slg(G.p1,G.p2,false);else show('sh')}
 function cquit(){if(confirm('Abort mission?')){clearPowerWordTimer();hid('pwPopup',true);hid('pwPanel',true);if(G.mode==='online'&&rref)rref.off();show('sh')}}
