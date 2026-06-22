@@ -84,22 +84,43 @@ Replace each value with the ones from your Firebase project. Save the file.
 ### Basic rules
 - Both players flip a card simultaneously
 - **Higher card wins** (Ace = 1 low, King = 13 high)
-- The winner must **tap the sounds** and **read a word** from their card before claiming it
-- If cards are **equal value → Spelling WAR**: each player places 3 face-down, flips a 4th; the winner must correctly **spell a word** to win the entire pot
+- The computer **speaks a word aloud** (text-to-speech) drawn from the winner's card
+- The winner spells the word using the **letter tile board** — tap or drag letter tiles into the answer row, in order
+  - **Correct** → the winner collects the pot, and the correct spelling is revealed
+  - **Incorrect** → the opponent gets a **steal chance**: same word, same tile board. If they spell it correctly, they steal the entire pot. If they also miss it, the cards return to the bottom of both players' stacks (nobody collects)
+- If cards are **equal value → WAR**: each player places 3 cards face-down and flips a 4th; the new winner goes through the same dictation → spell → steal sequence for the full pot
 
-### Word choices (per card)
-| Choice | Difficulty | Notes |
+### Word selection
+Each card has three possible words (the computer picks one at random per round):
+
+| Slot | Difficulty | XP if spelled correctly |
 |---|---|---|
-| 1 | Simple | Base word |
-| 2 | Intermediate | Base word + suffix |
-| 3 ⭐ | Cosmic Bonus | Complex word or Latin base |
+| w1 | Simple | +10 XP |
+| w2 | Intermediate | +15 XP |
+| w3 | Complex / Latin base | +25 XP |
 
-Teachers should encourage Choice 3 for extra challenge.
+A successful **steal** earns an additional +10 XP bonus.
 
-### Tapping guide
-- **Single sounds**: tap index finger to thumb once per sound
-- **Welded sounds** (e.g. `-ank`, `-ing`, `-old`): tap index + middle + ring fingers together to thumb — one tap for the whole welded unit
-- Suffixes are never tapped
+### Letter tile board
+- Tiles include the correct letters of the word **plus a few distractor letters** for added challenge
+- Tap a tray tile to place it in the next empty slot, or tap a placed tile to send it back
+- Drag-and-drop also works for both placing and removing tiles
+- "Clear" empties the board; "Submit" checks the spelling once every slot is filled
+- On submission, the correct spelling is always revealed on screen
+
+### Voice
+The dictation voice can be changed in **Setup → 🔊 Voice** using any voice installed in your browser/OS. Use the 🔁 Replay button to hear the word again as many times as needed.
+
+### ⚡ Power Word Challenges
+At random moments during play (roughly every 15–35 seconds, anytime — even mid-round), a glowing **Power Word** popup appears on screen. Whichever player taps it first gets the challenge:
+
+1. The computer dictates a high-frequency word (her, were, could, should, their, world, etc. — the original rulebook's "Bonus Cards" list)
+2. The player spells it on a mini letter-tile board
+3. If correct, they then pick the sentence that uses the word correctly from 2–3 multiple-choice options
+4. **Success** → steal one random card from the opponent's deck **and** earn +30 XP
+5. A miss at either step closes the challenge with no penalty — the popup will return again later
+
+In **Pass & Play** mode, whichever physical player taps the popup first plays the challenge. (Online co-op currently treats Player 1 as the default claimer when triggered — see note in Customizing below if you want to adjust this.)
 
 ### Suits → Substeps
 | Suit | Substep | Focus |
