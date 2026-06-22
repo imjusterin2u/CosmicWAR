@@ -1406,13 +1406,17 @@ function showPowerWordPopup(){
 }
 function claimPowerWord(){
   hid('pwPopup',true);
-  // In local/computer mode, the human player always "wins" the tap (computer doesn't compete for popups)
-  // In online mode, first device to call this wins; loser sees popup disappear via sync (handled simply: local optimistic claim)
-  const claimer=1; // default claimer is P1 in local play; in pass&play either physical player taps for themselves
+  // Whoever is "up" right now gets first crack: if a round is in progress, that round's current winner/speller.
+  // If no round is active (between flips), there's no real "current player" in Pass & Play, so pick randomly —
+  // except in vs Computer mode, where the human (always player 1) must get it since the AI can't tap a popup.
+  let claimer;
+  if(G.cpu){ claimer=1; }
+  else if(G.win===1||G.win===2){ claimer=G.win; }
+  else { claimer=Math.random()<0.5?1:2; }
   startPowerWordChallenge(claimer);
 }
 function startPowerWordChallenge(claimerNum){
-  pwState={claimer:claimerNum, word:POWER_WORDS[Math.floor(Math.random()*POWER_WORDS.length)], spelled:false};
+  pwState={claimer:claimerNum, word:POWER_WORDS[Math.floor(Math.random()*POWER_WORDS.length)], spelled:false, stealMode:false};
   q('pwTitle').textContent='⚡ Power Word Challenge — '+(claimerNum===1?G.p1:G.p2)+'!';
   q('pwWho').textContent=(claimerNum===1?G.p1:G.p2)+', spell the word you hear:';
   hid('pwPanel',false);
@@ -1526,8 +1530,23 @@ function submitPWSpelling(){
     q('pwSpellFeedback').className='tb-feedback bad';
     q('pwSpellFeedback').textContent='Not quite — correct spelling: '+pwTileState.target.toUpperCase();
     logMissedPowerWord(pwState.claimer===1?G.p1:G.p2, pwTileState.target);
-    setTimeout(closePWChallenge,2000);
+    setTimeout(()=>{
+      if(!pwState.stealMode && !G.cpu){ offerPWSteal(); }
+      else { closePWChallenge(); }
+    },2000);
   }
+}
+function offerPWSteal(){
+  pwState.stealMode=true;
+  const stealer=pwState.claimer===1?2:1;
+  pwState.claimer=stealer;
+  SFX.steal();
+  q('pwTitle').textContent='⚡ STEAL CHANCE — '+(stealer===1?G.p1:G.p2)+'!';
+  q('pwWho').textContent=(stealer===1?G.p1:G.p2)+', spell it correctly to steal the bonus:';
+  hid('pwStepSpell',false);
+  hid('pwStepSentence',true);
+  buildPWTileBoard(pwState.word.w);
+  setTimeout(speakPowerWord,300);
 }
 function showPWSentenceStep(){
   hid('pwStepSpell',true);
@@ -1551,7 +1570,10 @@ function resolvePWSentence(correct,btn,grid){
     btn.classList.add('sc-wrong');
     SFX.bad();
     logMissedSentenceUsage(pwState.claimer===1?G.p1:G.p2, pwState.word.w);
-    setTimeout(closePWChallenge,1600);
+    setTimeout(()=>{
+      if(!pwState.stealMode && !G.cpu){ offerPWSteal(); }
+      else { closePWChallenge(); }
+    },1600);
   }
 }
 function awardPowerWordPrize(winnerNum){
