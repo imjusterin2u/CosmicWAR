@@ -548,13 +548,18 @@ const LATIN_BASES=['rupt','fess','sent','pel','mit','pend','press','sist','vent'
 function isLatinBaseWord(word){ return LATIN_BASES.includes(cleanWordForCheck(word)); }
 function cleanWordForCheck(w){ return w.replace(/-/g,'').split(' ')[0].toLowerCase(); }
 
-/* Detect if the dictated word is a base-word + suffix pair (per the rulebook's Choice 1 -> Choice 2 design),
-   e.g. bank -> banks, brush -> brushes. Returns the suffix string ('s' or 'es') or null if no suffix applies. */
+/* Detect if the dictated word is a base-word + suffix pair. The rulebook's w1/w2/w3 columns
+   aren't always a clean base->suffix progression (e.g. card value 10 clubs has w1:'winds',
+   w2:'bind', w3:'binds' — so "binds" is base+suffix of w2, not w1). Check the word against
+   every slot on the card as a possible base, not just w1. */
 function detectSuffix(targetWord,card){
   if(!card) return null;
-  const base=cleanWordForCheck(card.w1);
-  if(targetWord===base+'s') return 's';
-  if(targetWord===base+'es') return 'es';
+  const candidates=[card.w1,card.w2,card.w3].filter(Boolean).map(cleanWordForCheck);
+  for(const base of candidates){
+    if(base===targetWord) continue; // the word IS this base itself, not a suffixed form of it
+    if(targetWord===base+'s') return 's';
+    if(targetWord===base+'es') return 'es';
+  }
   return null;
 }
 const VOWELS=['a','e','i','o','u'];
@@ -1066,11 +1071,23 @@ if('speechSynthesis' in window){
   loadVoices();
   window.speechSynthesis.onvoiceschanged=loadVoices;
 }
+/* Some words are heteronyms — same spelling, different pronunciation depending on meaning
+   (e.g. "wind" can be short-i like "wind a clock" or long-i like "the wind blew"). This deck's
+   closed-syllable-exception unit specifically intends the long-i reading, grouped with wild/bind/mild —
+   but browser TTS engines don't reliably pick that pronunciation by default. Substitute a
+   same-sounding word the TTS will say correctly; the actual spelling target is unaffected.
+   NOTE: these substitutions are a first guess — TTS behavior varies by voice/browser, so if one
+   sounds off after testing, just swap the substitute word here. */
+const PRONUNCIATION_OVERRIDES={
+  'wind':'wined',
+  'winds':'winhds' // approximates "wine" + "ds" ending; adjust here if it doesn't sound right
+};
 function speakWord(word){
   if(!('speechSynthesis' in window)){alert('Speech synthesis not supported in this browser.');return}
   const clean=word.replace(/-/g,'').split(' ')[0];
+  const spoken=PRONUNCIATION_OVERRIDES[clean.toLowerCase()]||clean;
   window.speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(clean);
+  const u=new SpeechSynthesisUtterance(spoken);
   u.rate=0.78; u.pitch=1.0;
   const selName=localStorage.getItem('cwVoiceName');
   if(selName){const v=availableVoices.find(v=>v.name===selName);if(v)u.voice=v}
