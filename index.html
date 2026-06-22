@@ -124,19 +124,27 @@ label{font-size:12px;color:var(--muted);display:block;margin-top:.75rem}
 .answer-row.wrong{animation:shakeRow .4s}
 @keyframes shakeRow{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}
 .answer-slot{width:44px;height:46px;border-radius:6px;border:1.5px dashed rgba(124,111,247,.25);flex-shrink:0}
-.tile{min-width:38px;height:46px;padding:0 8px;border-radius:6px;background:linear-gradient(135deg,#fdfbf3,#f3edd9);border:1.5px solid #d4c9a0;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;color:#3a2f1a;cursor:pointer;user-select:none;box-shadow:0 2px 6px rgba(0,0,0,.3);transition:transform .12s,box-shadow .12s;flex-shrink:0;font-family:Georgia,serif;text-transform:lowercase}
+.tile{min-width:38px;height:46px;padding:0 8px;border-radius:6px;background:#fdfdfb;border:3px solid #d4c9a0;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;color:#2a2a2a;cursor:pointer;user-select:none;box-shadow:0 2px 6px rgba(0,0,0,.3);transition:transform .12s,box-shadow .12s;flex-shrink:0;font-family:Georgia,serif;text-transform:lowercase}
 .tile:hover{transform:translateY(-2px);box-shadow:0 4px 10px rgba(0,0,0,.4)}
 .tile.placed{box-shadow:0 2px 8px rgba(0,0,0,.35),0 0 0 2px var(--purple)}
 .tile.correct-tile{box-shadow:0 2px 8px rgba(0,0,0,.35),0 0 0 2px var(--teal)}
-/* WRS color categories — matches the physical Wilson tile board */
-.tile.wrs-vowel{background:linear-gradient(135deg,#f6dcd4,#eec3b6);border-color:#d99c87;color:#5a2c1c}
-.tile.wrs-consonant{background:linear-gradient(135deg,#fdf3c8,#f7e3a0);border-color:#d9bd5a;color:#5a4509}
-.tile.wrs-welded{background:linear-gradient(135deg,#dcecc8,#c2dba0);border-color:#9bbf6a;color:#33480f}
+/* WRS color categories — white tile, colored border, matching the physical Wilson tile board */
+.tile.wrs-vowel{border-color:#e08a6f}
+.tile.wrs-consonant{border-color:#e0c23a}
+.tile.wrs-welded{border-color:#5fae3f}
 .wrs-legend{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:.6rem}
-.legend-chip{font-size:9.5px;font-weight:600;padding:3px 8px;border-radius:10px;color:#222}
-.legend-chip.wrs-vowel{background:#eec3b6}
-.legend-chip.wrs-consonant{background:#f7e3a0}
-.legend-chip.wrs-welded{background:#c2dba0}
+.sentence-choice{display:flex;align-items:flex-start;gap:12px;background:rgba(255,255,255,.06);border:2px solid rgba(124,111,247,.35);border-radius:12px;padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:transform .12s,background .15s,border-color .15s}
+.sentence-choice:hover{background:rgba(124,111,247,.14);border-color:var(--purple);transform:translateY(-1px)}
+.sc-num{flex-shrink:0;width:28px;height:28px;border-radius:50%;background:var(--purple);color:#fff;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center}
+.sc-text{font-size:17px;line-height:1.45;color:var(--text);font-weight:500;padding-top:2px}
+.sentence-choice.sc-correct{background:rgba(45,224,165,.18);border-color:var(--teal)}
+.sentence-choice.sc-correct .sc-num{background:var(--teal)}
+.sentence-choice.sc-wrong{background:rgba(255,107,74,.18);border-color:var(--coral)}
+.sentence-choice.sc-wrong .sc-num{background:var(--coral)}
+.legend-chip{font-size:9.5px;font-weight:600;padding:3px 8px;border-radius:10px;color:#222;background:#fdfdfb;border:2px solid}
+.legend-chip.wrs-vowel{border-color:#e08a6f}
+.legend-chip.wrs-consonant{border-color:#e0c23a}
+.legend-chip.wrs-welded{border-color:#5fae3f}
 .tb-base-label{text-align:center;font-size:12px;font-weight:600;color:var(--gold);margin-bottom:.5rem;background:rgba(245,200,66,.1);border:1px solid rgba(245,200,66,.3);border-radius:var(--rsm);padding:6px 10px}
 .tile-tray{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;min-height:50px;padding:.5rem}
 .tb-actions{display:flex;gap:8px;margin-top:.85rem}
@@ -387,7 +395,7 @@ select#hn:focus{outline:none;border-color:var(--purple);box-shadow:0 0 10px var(
     </div>
     <div class="pw-step hidden" id="pwStepSentence">
       <div class="ptitle" style="margin-top:.5rem">Now pick the sentence that uses it correctly:</div>
-      <div class="chg" id="pwSentenceGrid"></div>
+      <div class="sentence-grid" id="pwSentenceGrid"></div>
     </div>
   </div>
 
@@ -903,7 +911,7 @@ loadRoster(()=>{ populateHomeDropdown(); });
 
 function shxt(m){const t=q('xt');t.textContent=m;t.classList.add('sh');setTimeout(()=>t.classList.remove('sh'),1800)}
 function showLU(rn){q('lurn').textContent=rn;q('lu').classList.add('sh');SFX.lvl()}
-function closeLU(){q('lu').classList.remove('sh')}
+function closeLU(){q('lu').classList.remove('sh');if(G&&G.ph)rg();}
 
 const SFX=(()=>{
   let cx=null;
@@ -1369,6 +1377,9 @@ function startPowerWordChallenge(claimerNum){
   hid('pwPanel',false);
   hid('pwStepSpell',false);
   hid('pwStepSentence',true);
+  hid('dictPanel',true);
+  hid('tileBoard',true);
+  hid('fbtn',true);
   buildPWTileBoard(pwState.word.w);
   setTimeout(speakPowerWord,300);
 }
@@ -1380,33 +1391,39 @@ function speakPowerWord(){
 let pwTileState={letters:[],placed:[],target:'',usedIdx:new Set()};
 function buildPWTileBoard(word){
   const target=word.toLowerCase();
-  const letters=target.split('');
-  const distractorPool='etaoinshrdlcumwfgypbvkjxqz'.split('');
-  const numDistract=Math.min(2,Math.max(1,Math.floor(letters.length/2)));
-  const distractors=[];
-  while(distractors.length<numDistract){ distractors.push(distractorPool[Math.floor(Math.random()*distractorPool.length)]); }
-  pwTileState={letters:shuf([...letters,...distractors]),placed:new Array(target.length).fill(null),target,usedIdx:new Set()};
+  const targetTiles=segmentToWRSTiles(target);
+  const distractorTiles=generateDistractorTiles(targetTiles);
+  const allTiles=shuf([...targetTiles,...distractorTiles]);
+  pwTileState={letters:allTiles,placed:new Array(targetTiles.length).fill(null),target,targetTiles,usedIdx:new Set()};
   renderPWTiles();
   q('pwSpellFeedback').textContent='';
   q('pwSpellSubmit').disabled=true;
 }
 function renderPWTiles(){
   const ar=q('pwAnswerRow'); ar.innerHTML='';
-  for(let i=0;i<pwTileState.target.length;i++){
+  for(let i=0;i<pwTileState.targetTiles.length;i++){
     if(pwTileState.placed[i]!==null){
       const idx=pwTileState.placed[i];
-      const t=document.createElement('div'); t.className='tile placed';
-      t.textContent=pwTileState.letters[idx].toUpperCase();
+      const chunk=pwTileState.letters[idx];
+      const t=document.createElement('div'); t.className='tile placed '+tileColorClass(chunk);
+      t.textContent=chunk;
       t.onclick=()=>{ pwTileState.usedIdx.delete(idx); pwTileState.placed[i]=null; SFX.tile(); renderPWTiles(); };
+      t.draggable=true;
+      t.ondragstart=e=>{ e.dataTransfer.setData('text/plain','pwslot:'+i); };
       ar.appendChild(t);
     } else {
-      const s=document.createElement('div'); s.className='answer-slot'; ar.appendChild(s);
+      const s=document.createElement('div'); s.className='answer-slot'; s.dataset.slot=i;
+      s.ondragover=e=>e.preventDefault();
+      s.ondrop=e=>{ e.preventDefault(); handlePWDrop(e.dataTransfer.getData('text/plain'),i); };
+      ar.appendChild(s);
     }
   }
   const tray=q('pwTileTray'); tray.innerHTML='';
-  pwTileState.letters.forEach((ch,idx)=>{
+  pwTileState.letters.forEach((chunk,idx)=>{
     if(pwTileState.usedIdx.has(idx))return;
-    const t=document.createElement('div'); t.className='tile'; t.textContent=ch.toUpperCase();
+    const t=document.createElement('div'); t.className='tile '+tileColorClass(chunk); t.textContent=chunk;
+    t.draggable=true;
+    t.ondragstart=e=>{ e.dataTransfer.setData('text/plain','pwtray:'+idx); };
     t.onclick=()=>{
       if(pwTileState.usedIdx.has(idx))return;
       const slotI=pwTileState.placed.findIndex(p=>p===null);
@@ -1416,10 +1433,41 @@ function renderPWTiles(){
     };
     tray.appendChild(t);
   });
+  const traySlot=q('pwTileTray');
+  traySlot.ondragover=e=>e.preventDefault();
+  traySlot.ondrop=e=>{ e.preventDefault(); handlePWDropToTray(e.dataTransfer.getData('text/plain')); };
   q('pwSpellSubmit').disabled=pwTileState.placed.includes(null);
 }
+function handlePWDrop(data,slotI){
+  if(data.startsWith('pwtray:')){
+    const idx=parseInt(data.split(':')[1]);
+    if(pwTileState.usedIdx.has(idx))return;
+    if(pwTileState.placed[slotI]!==null){ pwTileState.usedIdx.delete(pwTileState.placed[slotI]); }
+    pwTileState.placed[slotI]=idx;
+    pwTileState.usedIdx.add(idx);
+  } else if(data.startsWith('pwslot:')){
+    const fromSlot=parseInt(data.split(':')[1]);
+    const idx=pwTileState.placed[fromSlot];
+    pwTileState.placed[fromSlot]=null;
+    if(pwTileState.placed[slotI]!==null){ pwTileState.usedIdx.delete(pwTileState.placed[slotI]); }
+    pwTileState.placed[slotI]=idx;
+  }
+  SFX.tile();
+  renderPWTiles();
+}
+function handlePWDropToTray(data){
+  if(data.startsWith('pwslot:')){
+    const fromSlot=parseInt(data.split(':')[1]);
+    const idx=pwTileState.placed[fromSlot];
+    if(idx===null||idx===undefined)return;
+    pwTileState.usedIdx.delete(idx);
+    pwTileState.placed[fromSlot]=null;
+    SFX.tile();
+    renderPWTiles();
+  }
+}
 function clearPWAnswer(){
-  pwTileState.placed=new Array(pwTileState.target.length).fill(null);
+  pwTileState.placed=new Array(pwTileState.targetTiles.length).fill(null);
   pwTileState.usedIdx=new Set();
   renderPWTiles();
 }
@@ -1444,20 +1492,20 @@ function showPWSentenceStep(){
   const opts=shuf([{text:pwState.word.correct,ok:true}, ...pwState.word.wrong.map(w=>({text:w,ok:false}))]);
   const grid=q('pwSentenceGrid'); grid.innerHTML='';
   opts.forEach((o,i)=>{
-    const b=document.createElement('div'); b.className='chb';
-    b.innerHTML='<div class="chn">'+(i+1)+'</div><div><div class="chw" style="font-size:13px;font-weight:600">'+o.text+'</div></div>';
+    const b=document.createElement('div'); b.className='sentence-choice';
+    b.innerHTML='<div class="sc-num">'+(i+1)+'</div><div class="sc-text">'+o.text+'</div>';
     b.onclick=()=>resolvePWSentence(o.ok,b,grid);
     grid.appendChild(b);
   });
 }
 function resolvePWSentence(correct,btn,grid){
-  grid.querySelectorAll('.chb').forEach(b=>b.style.pointerEvents='none');
+  grid.querySelectorAll('.sentence-choice').forEach(b=>b.style.pointerEvents='none');
   if(correct){
-    btn.style.background='rgba(45,224,165,.2)'; btn.style.borderColor='var(--teal)';
+    btn.classList.add('sc-correct');
     SFX.cosmic();
     setTimeout(()=>{ awardPowerWordPrize(pwState.claimer); closePWChallenge(); },1100);
   } else {
-    btn.style.background='rgba(255,107,74,.2)'; btn.style.borderColor='var(--coral)';
+    btn.classList.add('sc-wrong');
     SFX.bad();
     logMissedSentenceUsage(pwState.claimer===1?G.p1:G.p2, pwState.word.w);
     setTimeout(closePWChallenge,1600);
@@ -1480,6 +1528,7 @@ function awardPowerWordPrize(winnerNum){
 function closePWChallenge(){
   hid('pwPanel',true);
   pwState=null;
+  rg();
   schedulePowerWord();
 }
 
