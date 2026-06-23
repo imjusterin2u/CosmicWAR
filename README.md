@@ -26,6 +26,8 @@ A two-player literacy card game built on the **Wilson Reading System (WRS) Subst
 
 Online play requires a free Firebase Realtime Database. This takes about 5 minutes.
 
+> **Works on school networks too.** The Firebase SDK is bundled directly inside `index.html` rather than loaded from Google's CDN (`gstatic.com`) — many school content filters block that domain, which would otherwise make online multiplayer silently fail with no clear error. Bundling it means there's no outside network request for a filter to block.
+
 ### Step 1 — Create a Firebase project
 
 1. Go to [https://console.firebase.google.com](https://console.firebase.google.com)
@@ -49,10 +51,10 @@ Online play requires a free Firebase Realtime Database. This takes about 5 minut
 
 ### Step 4 — Paste your config into the game
 
-Open `index.html` and find this section near the top of the `<script>` tag:
+Open `index.html` and find this section near the top of the first `<script>` tag:
 
 ```js
-const FIREBASE_CONFIG = {
+const FC = {
   apiKey:            "YOUR_API_KEY",
   authDomain:        "YOUR_PROJECT.firebaseapp.com",
   databaseURL:       "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
@@ -64,6 +66,16 @@ const FIREBASE_CONFIG = {
 ```
 
 Replace each value with the ones from your Firebase project. Save the file.
+
+### Troubleshooting: "Firebase connection failed"
+
+If Host/Join Game shows an error after following the steps above, the popup now includes the actual error detail (and logs more in the browser console via F12) rather than a generic message. A few common causes:
+
+- **Wrong/missing config values** — double check every field in Step 4 matches your Firebase project exactly
+- **Realtime Database not created yet** — Step 2 is a separate setup from just creating the Firebase project
+- **Security rules expired or too strict** — test-mode rules expire automatically after 30 days; check the **Rules** tab in your Realtime Database console for an expiration date
+
+
 
 ---
 
@@ -90,7 +102,27 @@ Replace each value with the ones from your Firebase project. Save the file.
   - **Incorrect** → the opponent gets a **steal chance**: same word, same tile board. If they spell it correctly, they steal the entire pot. If they also miss it, the cards return to the bottom of both players' stacks (nobody collects)
 - If cards are **equal value → WAR**: each player places 3 cards face-down and flips a 4th; the new winner goes through the same dictation → spell → steal sequence for the full pot
 
-### Guaranteed early WAR
+### 🤖 Clear "Computer's Turn" indicator
+In **vs Computer** mode, it's easy for a student to lose track of whose turn it is — especially during the spelling step, where watching a tile board you're not actually controlling can be confusing. Whenever the computer is dictating or spelling (including during a steal attempt), the screen makes this unmistakable:
+
+- A bold red **"COMPUTER'S TURN — JUST WATCH!"** banner replaces the live dictation/tile board entirely
+- A simple bouncing-bars animation plays instead, with status text like *"Listening to the word…"* or *"Spelling the word…"*
+- The student's own card visually dims while the computer's card stays at full brightness, reinforcing who's currently acting
+
+This only ever applies in **vs Computer** mode — **Pass & Play** and online multiplayer are unaffected, since both players are real people who need to see the live board on their turn.
+
+### ⚔️ The WAR ceremony
+When cards tie, the screen takes over with a dedicated WAR moment instead of resolving instantly:
+
+1. Three cards animate face-down into each player's pile, one at a time, with a sound on each drop
+2. Once both piles are down, a glowing gold card appears with **"TAP TO REVEAL THE DECIDING CARD"**
+3. Either player taps it — the 4th card flips, and the result (who wins, or another DOUBLE WAR if it ties again) plays out right there
+4. The winner then moves into the usual dictation → spell → steal sequence for the entire pot
+
+This applies to **vs Computer** and **Pass & Play** the same way — tapping the flip card is a shared moment, not tied to whose "turn" it is, since a WAR standoff belongs to both players equally.
+
+*Note: in online multiplayer, this ceremony currently plays out locally on whichever device is active in that moment rather than syncing the animation live between both players' screens — the final result still syncs correctly once the WAR resolves and dictation begins.*
+
 With all four suits in play, a natural tie only happens on roughly 6% of flips — so by pure chance, more than half of all games would go their first several rounds without a single WAR. To make sure the WAR mechanic actually gets used early in every session, the deck is automatically arranged (right after dealing, before the first flip) so that **a WAR is guaranteed within the first 5 rounds**, unless one happens naturally even sooner. The rest of the deck stays fully random — only the minimum necessary swap happens to make this guarantee work, and the swap is invisible to players.
 
 If you select **only one suit** in Setup, this guarantee can't apply — with just 13 cards and each value appearing exactly once, a tie is mathematically impossible regardless of shuffling. Selecting two or more suits restores the guarantee.
@@ -123,7 +155,16 @@ This applies to **both** tile boards in the game, but with one important differe
 
 The dictated word is automatically broken into the same chunks a student would pull on a physical Wilson board — for example *"brand"* becomes four tiles: **b · r · an · d** (the welded **an** is one tile, not two letters). A handful of same-category distractor tiles are mixed into the tray, so the task is genuinely "find the right tile," not just "put these in order."
 
-When the dictated word is the rulebook's "Choice 2" base-plus-suffix form (e.g. *bank → banks*, *brush → brushes*), the suffix is carved off as its own distinct tile showing **-s** or **-es** with the dash — visually separate from the base word's sound tiles, with a dark gold border instead of the light yellow used for regular consonant tiles. This mirrors how Wilson marks suffixes as a different category from the base sound pattern.
+A few welded-sound spellings are only "welded" in certain words — the same letters can spell a regular short-vowel pattern elsewhere. For example, **ost** is a long-o closed-syllable exception in *most* and *post(s)*, but a perfectly regular short-o blend in *frost(s)* — so the tile board correctly keeps *frost* as **f · r · o · s · t**, not **f · r · ost**. If you ever spot a similar mismatch on another word, it's a quick fix — just let me know which word and which chunk looks wrong.
+
+### Heteronyms (same spelling, different sound)
+**Wind** is a true heteronym — it can sound like *"wind a clock"* (short i) or *"the wind blew"* (long i), and this deck's closed-syllable-exception unit intends the **long-i** reading, grouped with *wild/bind/mild*. The spelling/tile board always correctly shows **w · ind** either way — that part isn't affected. The only uncertain part is what the **computer voice says aloud**, since browser text-to-speech doesn't reliably default to the long-i pronunciation on its own.
+
+To work around that, the game silently substitutes a same-sounding word when speaking "wind" or "winds" aloud (the spelling target itself never changes). This is a first guess, not a guarantee — TTS behavior varies by voice and browser, so **if "winds" sounds off when you test it, let me know and I'll swap the substitute word** (it's a one-line fix, defined near the top of the speech logic in `index.html`).
+
+When the dictated word is a base-plus-suffix form (e.g. *bank → banks*, *brush → brushes*), the suffix is carved off as its own distinct tile showing **-s** or **-es** with the dash — visually separate from the base word's sound tiles, with a dark gold border instead of the light yellow used for regular consonant tiles. This mirrors how Wilson marks suffixes as a different category from the base sound pattern.
+
+This check looks across **all three** word choices on a card, not just Choice 1 — the rulebook's own layout occasionally places a base word in Choice 2 with its suffixed form in Choice 3 (e.g. the card with *winds / bind / binds* has its true base, "bind," sitting in the Choice 2 slot). The game checks every slot so the suffix tile shows up correctly regardless of which column the base word happens to land in.
 
 For the **Latin base cards** (Jack/Queen/King on Hearts and Diamonds — Substeps 2.4 and 2.5), a small ⚡ label appears above the tray noting it's a base, matching how Wilson introduces Base Elements at that stage. Earlier substeps never show this label.
 
